@@ -109,3 +109,6 @@
        please check the style of container, or the props width(100%) and height(100%),
        or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
        height and width. @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_f3530cac._.js:2297
+[ 1687007ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=n14w24tnTWzE3wMczc8R5' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[ 1688009ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=n14w24tnTWzE3wMczc8R5' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
+[ 1689011ms] [ERROR] WebSocket connection to 'ws://localhost:3000/_next/webpack-hmr?id=n14w24tnTWzE3wMczc8R5' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/_next/static/chunks/node_modules_next_dist_client_17643121._.js:10878
