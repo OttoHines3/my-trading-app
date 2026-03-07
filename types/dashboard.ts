@@ -22,3 +22,10 @@ export interface LayoutItem {
   rowSpan: number;
   order: number;
 }
+
+export interface DashboardTemplate {
+  id: string;
+  name: string;
+  layout: LayoutItem[];
+  createdAt: string;
+}

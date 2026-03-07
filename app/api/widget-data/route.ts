@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calcWinRate, calcProfitFactor } from "@/lib/utils/calculations";
+import { parseFiltersToWhere, applyTimeFilters } from "@/lib/utils/parse-filters";
 import {
   calcExpectancy,
   calcCurrentStreak,
@@ -23,10 +24,20 @@ export async function GET(request: NextRequest) {
   const fields = request.nextUrl.searchParams.get("fields")?.split(",") ?? [];
 
   try {
-    // Fetch all trades (TODO: filter by userId once auth is implemented)
-    const trades = await prisma.trade.findMany({
+    // Fetch trades with filters applied
+    const where = parseFiltersToWhere(request.nextUrl.searchParams);
+    let trades = await prisma.trade.findMany({
+      where,
       orderBy: { exitDate: "asc" },
     });
+
+    // Apply time-based JS filters
+    if (request.nextUrl.searchParams.has("daysOfWeek") || request.nextUrl.searchParams.has("hoursOfDay")) {
+      trades = applyTimeFilters(
+        trades.map((t) => ({ ...t, entryDate: t.entryDate.toISOString() })),
+        request.nextUrl.searchParams
+      ).map((t) => ({ ...t, entryDate: new Date(t.entryDate) })) as typeof trades;
+    }
 
     const tradeData = trades.map((t) => ({
       pnl: t.pnl,

@@ -20,9 +20,9 @@ interface Props {
 }
 
 export function WidgetLibraryModal({ isOpen, onClose }: Props) {
-  const { addWidget, layout } = useDashboardLayout();
+  const { addWidget, getActiveLayout } = useDashboardLayout();
   const widgetsByCategory = getWidgetsByCategory();
-  const activeWidgetIds = new Set(layout.map((item) => item.widgetId));
+  const activeWidgetIds = new Set(getActiveLayout().map((item) => item.widgetId));
 
   if (!isOpen) return null;
 

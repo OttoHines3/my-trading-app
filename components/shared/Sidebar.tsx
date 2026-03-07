@@ -1,12 +1,14 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BookOpen, BarChart2, Calendar, Newspaper, Star, Brain } from "lucide-react";
+import { LayoutDashboard, BookOpen, BarChart2, Calendar, Newspaper, Star, Brain, List, FileBarChart } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/trades", label: "Trades", icon: List },
+  { href: "/reports", label: "Reports", icon: FileBarChart },
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/news", label: "News", icon: Newspaper },
   { href: "/watchlist", label: "Watchlist", icon: Star },

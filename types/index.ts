@@ -14,6 +14,10 @@ export interface Trade {
   pnl: number;
   notes?: string;
   tags?: string[];
+  strategy?: string;
+  commissions?: number;
+  reviewed?: boolean;
+  tradeRating?: number;
   screenshotUrl?: string;
   createdAt: string;
 }

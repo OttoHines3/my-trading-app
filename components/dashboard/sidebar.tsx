@@ -14,6 +14,7 @@ import {
   Briefcase,
   ChevronRight,
   TrendingUp,
+  FileBarChart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: BookOpen, label: "Journal", href: "/journal" },
   { icon: BarChart2, label: "Analytics", href: "/analytics" },
+  { icon: FileBarChart, label: "Reports", href: "/reports" },
   { icon: Calendar, label: "Calendar", href: "/calendar" },
   { icon: Newspaper, label: "News", href: "/news" },
   { icon: Briefcase, label: "Portfolio", href: "/portfolio" },

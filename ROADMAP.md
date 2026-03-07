@@ -40,7 +40,7 @@
 - [ ] API route: `DELETE /api/trades/[id]` — delete trade
 - [ ] Trade form fields: symbol, side, asset class, entry/exit price, quantity, dates, P&L auto-calc, tags, notes
 - [ ] Screenshot upload (Supabase Storage)
-- [ ] Trade list with sorting and filtering (by date, symbol, side, asset class)
+- [x] Trade list with sorting and filtering (by date, symbol, side, asset class)
 - [ ] Trade detail view with full info and screenshot
 
 ---
@@ -136,7 +136,32 @@
 
 ---
 
-## Phase 11 — Polish & Quality
+## Phase 11 — Shared Filters & Trade View
+- [x] Global filter store (`lib/stores/trade-filters.ts`) — Zustand + persist, filters across all pages
+- [x] Filter UI components: FilterBar, FilterPanel (modal with categories), DateRangePicker
+- [x] Filter parsing utility (`lib/utils/parse-filters.ts`) — Prisma `where` + JS time filters
+- [x] API routes updated with filter/pagination/sorting support (`/api/trades`, `/api/widget-data`, `/api/dashboard-stats`)
+- [x] Widget fetch hook (`lib/hooks/use-widget-fetch.ts`)
+- [x] Trade View page (`/trades`) with summary cards, sortable table, pagination
+- [x] Dashboard templates (create, rename, duplicate, delete, switch) with v1→v2 store migration
+- [x] Trade model extended: `strategy`, `commissions`, `reviewed`, `tradeRating` fields
+
+---
+
+## Phase 12 — Reports
+- [x] Reports page with tabbed layout (Performance, Overview, Compare, Calendar)
+- [x] Report calculation utilities (`lib/utils/report-calculations.ts`)
+- [x] Performance tab: Cumulative P&L chart, Avg Daily Win/Loss chart, Performance Summary Grid (Summary/Days/Trades sub-tabs)
+- [x] Overview tab: summary stats + Monthly P&L bar chart
+- [x] Compare tab: first-half vs second-half period comparison
+- [x] Calendar tab: daily P&L grouped by month with color-coded cells
+- [x] Export PDF button component (html2canvas + jsPDF)
+- [x] Sidebar nav link for Reports
+- [x] FilterBar integration for all report tabs
+
+---
+
+## Phase 13 — Polish & Quality
 - [x] Display Mode Switcher (dollar, %, privacy, R-multiple, ticks, pips, points) with Zustand persist
 - [ ] Loading skeletons for all data-fetching pages
 - [ ] Error states and empty states throughout

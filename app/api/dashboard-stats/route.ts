@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, subDays } from "date-fns";
+import { parseFiltersToWhere } from "@/lib/utils/parse-filters";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const where = parseFiltersToWhere(searchParams);
+
     const now = new Date();
     const todayStart = startOfDay(now);
     const thirtyDaysAgo = subDays(now, 30);
@@ -11,10 +15,10 @@ export async function GET() {
     // TODO: filter by userId once auth is implemented
     const [todayTrades, thirtyDayTrades] = await Promise.all([
       prisma.trade.findMany({
-        where: { exitDate: { gte: todayStart } },
+        where: { ...where, exitDate: { gte: todayStart } },
       }),
       prisma.trade.findMany({
-        where: { exitDate: { gte: thirtyDaysAgo } },
+        where: { ...where, exitDate: { gte: thirtyDaysAgo } },
       }),
     ]);
 
@@ -28,7 +32,7 @@ export async function GET() {
     // Build P&L sparkline from last 12 days
     const twelveDaysAgo = subDays(now, 12);
     const historyTrades = await prisma.trade.findMany({
-      where: { exitDate: { gte: twelveDaysAgo } },
+      where: { ...where, exitDate: { gte: twelveDaysAgo } },
       orderBy: { exitDate: "asc" },
     });
 
