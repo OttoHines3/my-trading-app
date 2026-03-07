@@ -10,9 +10,51 @@ async function get<T>(endpoint: string, params: Record<string, string> = {}): Pr
   return res.json() as Promise<T>;
 }
 
+export interface FinnhubQuote {
+  c: number;   // current price
+  d: number;   // change
+  dp: number;  // percent change
+  h: number;   // high
+  l: number;   // low
+  o: number;   // open
+  pc: number;  // previous close
+}
+
+export interface FinnhubNewsItem {
+  headline: string;
+  url: string;
+  source: string;
+  datetime: number;
+  summary?: string;
+  image?: string;
+  category?: string;
+}
+
+export interface FinnhubCalendarEvent {
+  actual: number | string | null;
+  country: string;
+  estimate: number | string | null;
+  event: string;
+  impact: string;
+  prev: number | string | null;
+  time: string;
+  unit: string;
+}
+
 export const finnhub = {
-  quote: (symbol: string) => get<{ c: number; d: number; dp: number }>("/quote", { symbol }),
-  news: (category = "general") => get<{ headline: string; url: string; source: string; datetime: number }[]>("/news", { category }),
-  calendar: () => get<{ economicCalendar: unknown[] }>("/calendar/economic"),
-  earningsCalendar: (from: string, to: string) => get<{ earningsCalendar: unknown[] }>("/calendar/earnings", { from, to }),
+  quote: (symbol: string) =>
+    get<FinnhubQuote>("/quote", { symbol }),
+
+  news: (category = "general") =>
+    get<FinnhubNewsItem[]>("/news", { category }),
+
+  calendar: (from?: string, to?: string) => {
+    const params: Record<string, string> = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    return get<{ economicCalendar: FinnhubCalendarEvent[] }>("/calendar/economic", params);
+  },
+
+  earningsCalendar: (from: string, to: string) =>
+    get<{ earningsCalendar: unknown[] }>("/calendar/earnings", { from, to }),
 };

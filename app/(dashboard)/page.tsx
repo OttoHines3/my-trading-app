@@ -1,14 +1,34 @@
+import { StatCardsRow } from "@/components/dashboard/stat-cards";
+import { MarketOverview, EconomicCalendar } from "@/components/dashboard/market-overview";
+import { RecentTrades, NewsFeed } from "@/components/dashboard/trades-news";
+import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+
 export default function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {["Total P&L", "Win Rate", "Trades This Week", "Open Positions"].map((label) => (
-          <div key={label} className="rounded-xl border border-gray-800 bg-gray-900 p-5">
-            <p className="text-sm text-gray-400">{label}</p>
-            <p className="mt-1 text-2xl font-semibold text-white">—</p>
-          </div>
-        ))}
+    <div className="flex flex-col gap-4 p-4 min-h-full">
+      <DashboardHeader />
+
+      {/* Row 1 — Stat Cards */}
+      <StatCardsRow />
+
+      {/* Row 2 — Market Overview + Economic Calendar */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <MarketOverview />
+        </div>
+        <div className="lg:col-span-2 min-h-0">
+          <EconomicCalendar />
+        </div>
+      </div>
+
+      {/* Row 3 — Recent Trades + News Feed */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <RecentTrades />
+        </div>
+        <div className="lg:col-span-2">
+          <NewsFeed />
+        </div>
       </div>
     </div>
   );
