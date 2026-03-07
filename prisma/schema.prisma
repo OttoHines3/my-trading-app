@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Trade {
+  id           String   @id @default(cuid())
+  userId       String
+  symbol       String
+  side         String   // "long" | "short"
+  assetClass   String   // "stocks" | "options" | "crypto" | "forex" | "futures"
+  entryPrice   Float
+  exitPrice    Float
+  quantity     Float
+  entryDate    DateTime
+  exitDate     DateTime
+  pnl          Float
+  notes        String?
+  tags         String[]
+  screenshotUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model WatchlistItem {
+  id         String  @id @default(cuid())
+  userId     String
+  symbol     String
+  notes      String?
+  alertPrice Float?
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, symbol])
+}
+
+model JournalEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  date        DateTime @unique
+  mood        Int      // 1-5
+  notes       String
+  marketBias  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
