@@ -11,6 +11,7 @@ import {
   Newspaper,
   Star,
   Brain,
+  Briefcase,
   ChevronRight,
   TrendingUp,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const navItems = [
   { icon: BarChart2, label: "Analytics", href: "/analytics" },
   { icon: Calendar, label: "Calendar", href: "/calendar" },
   { icon: Newspaper, label: "News", href: "/news" },
+  { icon: Briefcase, label: "Portfolio", href: "/portfolio" },
   { icon: Star, label: "Watchlist", href: "/watchlist" },
   { icon: Brain, label: "Psychology", href: "/psychology" },
 ];

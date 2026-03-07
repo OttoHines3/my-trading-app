@@ -50,20 +50,27 @@
 - [x] Wire up Total P&L from real trade data (via `/api/dashboard-stats`)
 - [x] Wire up Win Rate from real trade data (via `/api/dashboard-stats`)
 - [x] Wire up Trades Today from real trade data (via `/api/dashboard-stats`)
-- [ ] Open Positions count
+- [-] Open Positions count (widget exists, needs TradeStation wiring)
 - [x] Recent trades table on dashboard (fetches from `/api/trades`)
 - [x] P&L sparkline mini chart (cumulative, from Prisma data)
 - [x] Live ticker bar with Finnhub quotes (auto-refreshes every 30s)
 - [x] Market overview with SPY quote + mini market row (QQQ, DXY, VIX, BTC)
 - [x] SPY candlestick chart (demo data — needs premium API for live intraday)
-- [x] Economic calendar on dashboard (from Finnhub)
+- [x] Economic calendar on dashboard (FairEconomy/ForexFactory API, with dynamic day grouping)
 - [x] News feed on dashboard (from Finnhub, linked to articles)
 - [x] Mock data fallbacks for all components when API is unavailable
+- [x] Editable widget-based dashboard (12-column CSS grid, edit mode, widget library modal, localStorage persistence)
+- [x] 35 widgets: 17 stats, 7 charts, 5 composite, 4 market (all self-contained with mock fallbacks)
+- [x] Widget registry with lazy loading via `next/dynamic`
+- [x] Zustand store for dashboard layout with localStorage persist
+- [x] Advanced calculation utilities (expectancy, streaks, drawdown, distribution, etc.)
 
 ---
 
 ## Phase 5 — Analytics
-- [-] Page scaffolded, shows "Coming soon"
+- [-] Page scaffolded, PerformanceCalendar component wired up
+- [x] Trading Performance Calendar (monthly grid with daily P&L, win rate, weekly summaries)
+- [x] Widget data API endpoint (`/api/widget-data`) — serves stats, daily P&L, by-weekday, by-hour, by-asset-class, by-symbol, drawdown, distribution via `?fields=` param; mock fallback on error
 - [ ] Cumulative P&L curve chart (Recharts or lightweight-charts)
 - [ ] P&L by day / week / month bar chart
 - [ ] Win/loss ratio breakdown
@@ -87,7 +94,7 @@
 
 ## Phase 7 — Calendar
 - [x] Page scaffolded, shows "Coming soon"
-- [x] Economic calendar API route (`/api/calendar`) via Finnhub
+- [x] Economic calendar API route (`/api/calendar`) via FairEconomy (free), with date range params and in-memory cache
 - [x] Earnings calendar feed via `finnhub.earningsCalendar()`
 - [x] Full-page calendar grid or list view with event details
 - [x] Filter by impact level (high / medium / low)
@@ -113,7 +120,24 @@
 
 ---
 
-## Phase 10 — Polish & Quality
+## Phase 10 — Brokerage Integration (TradeStation)
+- [x] TradeStation API v3 typed wrapper (`lib/tradestation.ts`)
+- [x] OAuth2 authorization code flow (auth + callback + disconnect routes)
+- [x] Token management via httpOnly cookies (auto-refresh)
+- [x] Portfolio API route — aggregated accounts, balances, positions
+- [x] Orders API route
+- [x] Portfolio page — connect prompt, account cards, positions table
+- [x] Sidebar nav link for Portfolio
+- [x] Sim/Live environment toggle via `TRADESTATION_ENV`
+- [ ] Stream real-time position updates (WebSocket)
+- [ ] Wire TradeStation open positions count into dashboard stat cards
+- [ ] Order placement UI
+- [ ] Trade history sync (import closed trades to Trade Journal)
+
+---
+
+## Phase 11 — Polish & Quality
+- [x] Display Mode Switcher (dollar, %, privacy, R-multiple, ticks, pips, points) with Zustand persist
 - [ ] Loading skeletons for all data-fetching pages
 - [ ] Error states and empty states throughout
 - [ ] Mobile responsiveness audit

@@ -1,0 +1,65 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface Stats {
+  winRate: number;
+  profitFactor: number;
+  avgWinner: number;
+  avgLoser: number;
+  totalTrades: number;
+  expectancy: number;
+}
+
+const mockStats: Stats = {
+  winRate: 67, profitFactor: 2.4, avgWinner: 320,
+  avgLoser: -180, totalTrades: 64, expectancy: 45.6,
+};
+
+export default function PerformanceSummaryWidget() {
+  const [stats, setStats] = useState<Stats>(mockStats);
+
+  useEffect(() => {
+    fetch("/api/widget-data?fields=stats")
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.stats) {
+          setStats({
+            winRate: res.stats.winRate ?? 67,
+            profitFactor: res.stats.profitFactor ?? 2.4,
+            avgWinner: res.stats.avgWinner ?? 320,
+            avgLoser: res.stats.avgLoser ?? -180,
+            totalTrades: res.stats.totalTrades ?? 64,
+            expectancy: res.stats.expectancy ?? 45.6,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const rows = [
+    { label: "Win Rate", value: `${stats.winRate}%`, color: stats.winRate >= 50 ? "text-positive" : "text-destructive" },
+    { label: "Profit Factor", value: stats.profitFactor === Infinity ? "Infinity" : `${stats.profitFactor.toFixed(2)}x`, color: stats.profitFactor >= 1 ? "text-positive" : "text-destructive" },
+    { label: "Avg Winner", value: `+$${stats.avgWinner.toFixed(2)}`, color: "text-positive" },
+    { label: "Avg Loser", value: `-$${Math.abs(stats.avgLoser).toFixed(2)}`, color: "text-destructive" },
+    { label: "Total Trades", value: String(stats.totalTrades), color: "text-foreground" },
+    { label: "Expectancy", value: `${stats.expectancy >= 0 ? "+" : ""}$${stats.expectancy.toFixed(2)}`, color: stats.expectancy >= 0 ? "text-positive" : "text-destructive" },
+  ];
+
+  return (
+    <div className="flex flex-col rounded-xl border border-white/5 bg-card card-glow transition-all duration-200 h-full">
+      <div className="border-b border-white/5 px-4 py-3">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Performance Summary</p>
+      </div>
+      <div className="flex flex-col divide-y divide-white/[0.04] flex-1">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between px-4 py-3">
+            <span className="text-xs text-muted-foreground">{row.label}</span>
+            <span className={cn("text-sm font-bold", row.color)}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

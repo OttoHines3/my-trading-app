@@ -275,8 +275,21 @@ export function EconomicCalendar() {
       .catch(() => {});
   }, []);
 
-  const today = events.filter((e) => e.day === "Today");
-  const tomorrow = events.filter((e) => e.day === "Tomorrow");
+  // Group events by day, preserving insertion order (Today first, then Tomorrow, then later days)
+  const grouped: Record<string, CalendarEvent[]> = {};
+  for (const ev of events) {
+    const key = ev.day ?? "Other";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(ev);
+  }
+
+  // Stable sort: "Today" first, "Tomorrow" second, everything else in original order
+  const dayOrder = (d: string) => (d === "Today" ? 0 : d === "Tomorrow" ? 1 : 2);
+  const sortedDays = Object.keys(grouped).sort((a, b) => dayOrder(a) - dayOrder(b));
+
+  // Limit total displayed events to keep the card compact
+  const MAX_EVENTS = 10;
+  let remaining = MAX_EVENTS;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
@@ -285,23 +298,19 @@ export function EconomicCalendar() {
       </p>
 
       <div className="flex flex-col gap-3 overflow-y-auto scrollbar-thin flex-1">
-        {today.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-foreground/60">Today</p>
-            <div className="flex flex-col gap-1">
-              {today.map((ev, i) => <EventRow key={i} event={ev} />)}
+        {sortedDays.map((day) => {
+          if (remaining <= 0) return null;
+          const dayEvents = grouped[day].slice(0, remaining);
+          remaining -= dayEvents.length;
+          return (
+            <div key={day}>
+              <p className="mb-1.5 text-xs font-semibold text-foreground/60">{day}</p>
+              <div className="flex flex-col gap-1">
+                {dayEvents.map((ev, i) => <EventRow key={i} event={ev} />)}
+              </div>
             </div>
-          </div>
-        )}
-
-        {tomorrow.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-xs font-semibold text-foreground/60">Tomorrow</p>
-            <div className="flex flex-col gap-1">
-              {tomorrow.map((ev, i) => <EventRow key={i} event={ev} />)}
-            </div>
-          </div>
-        )}
+          );
+        })}
       </div>
     </div>
   );

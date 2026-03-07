@@ -9,6 +9,8 @@ import {
   Clock,
   TrendingUp,
   TrendingDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,27 +64,68 @@ export default function CalendarPage() {
   );
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
+  // ── Date range state ───────────────────────────────────────────────────────
+
+  const [startDate, setStartDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    // Go to Monday of current week
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return d;
+  });
+
+  function toISO(d: Date) {
+    return d.toISOString().split("T")[0];
+  }
+
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 6);
+
+  function shiftWeek(dir: -1 | 1) {
+    setStartDate((prev) => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + dir * 7);
+      return next;
+    });
+  }
+
+  function goToThisWeek() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    setStartDate(d);
+  }
+
+  const rangeLabel = `${startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`;
+
   // ── Fetch logic ────────────────────────────────────────────────────────────
+
+  const from = toISO(startDate);
+  const to = toISO(endDate);
 
   const fetchEconomic = useCallback(async () => {
     try {
-      const res = await fetch("/api/calendar");
+      const res = await fetch(`/api/calendar?from=${from}&to=${to}`);
       const data = await res.json();
       setEconomicEvents(data.events ?? []);
     } catch {
       setEconomicEvents([]);
     }
-  }, []);
+  }, [from, to]);
 
   const fetchEarnings = useCallback(async () => {
     try {
-      const res = await fetch("/api/calendar?type=earnings");
+      const res = await fetch(`/api/calendar?type=earnings&from=${from}&to=${to}`);
       const data = await res.json();
       setEarningsEvents(data.earnings ?? []);
     } catch {
       setEarningsEvents([]);
     }
-  }, []);
+  }, [from, to]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -202,6 +245,31 @@ export default function CalendarPage() {
           <BarChart3 className="h-4 w-4" />
           Earnings
         </button>
+      </div>
+
+      {/* Date navigation */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => shiftWeek(-1)}
+          className="rounded-lg border border-white/5 bg-card p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          aria-label="Previous week"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <button
+          onClick={goToThisWeek}
+          className="rounded-lg border border-white/5 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+        >
+          This Week
+        </button>
+        <button
+          onClick={() => shiftWeek(1)}
+          className="rounded-lg border border-white/5 bg-card p-2 text-muted-foreground transition-colors hover:bg-white/5 hover:text-foreground"
+          aria-label="Next week"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-medium text-foreground">{rangeLabel}</span>
       </div>
 
       {/* Impact filters (economic only) */}

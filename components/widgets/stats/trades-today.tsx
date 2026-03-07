@@ -1,0 +1,49 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { BarChart, Bar, ResponsiveContainer, Tooltip } from "recharts";
+
+const defaultBarData = [
+  { v: 1 }, { v: 0 }, { v: 1 }, { v: 1 }, { v: 0 },
+  { v: 1 }, { v: 0 }, { v: 0 }, { v: 1 }, { v: 0 },
+  { v: 0 }, { v: 1 }, { v: 0 }, { v: 0 }, { v: 1 },
+];
+
+export default function TradesTodayWidget() {
+  const [tradesToday, setTradesToday] = useState(4);
+  const [winsToday, setWinsToday] = useState(3);
+  const [lossesToday, setLossesToday] = useState(1);
+
+  useEffect(() => {
+    fetch("/api/dashboard-stats")
+      .then((r) => r.json())
+      .then((data) => {
+        setTradesToday(data.tradesToday);
+        setWinsToday(data.tradeWinsToday);
+        setLossesToday(data.tradeLossesToday);
+      })
+      .catch(() => {});
+  }, []);
+
+  return (
+    <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">
+      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Trades Today</p>
+      <div className="flex items-end justify-between gap-2">
+        <div>
+          <p className="text-2xl font-bold text-foreground">{tradesToday}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {winsToday} winners &middot; {lossesToday} loser{lossesToday !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div className="h-12 w-28">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={defaultBarData} barCategoryGap={2}>
+              <Bar dataKey="v" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+              <Tooltip content={() => null} cursor={false} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}

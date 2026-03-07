@@ -1,8 +1,10 @@
+import PerformanceCalendar from "@/components/analytics/performance-calendar";
+
 export default function Page() {
   return (
-    <div>
+    <div className="space-y-6">
       <h1 className="text-2xl font-bold capitalize">Analytics</h1>
-      <p className="mt-2 text-gray-400">Coming soon…</p>
+      <PerformanceCalendar />
     </div>
   );
 }
