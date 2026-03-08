@@ -221,6 +221,15 @@ const widgets: WidgetDefinition[] = [
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/pnl-by-asset-class")),
   },
+  {
+    id: "performance-calendar",
+    name: "Performance Calendar",
+    description: "Monthly calendar with daily P&L, trade count, and win rate",
+    category: "charts",
+    defaultColSpan: 12,
+    defaultRowSpan: 3,
+    component: dynamic(() => import("@/components/widgets/charts/performance-calendar")),
+  },
 
   // ── Composite widgets (colSpan: 6, rowSpan: 2) ──────────────────────
   {

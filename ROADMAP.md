@@ -60,7 +60,7 @@
 - [x] News feed on dashboard (from Finnhub, linked to articles)
 - [x] Mock data fallbacks for all components when API is unavailable
 - [x] Editable widget-based dashboard (12-column CSS grid, edit mode, widget library modal, localStorage persistence)
-- [x] 35 widgets: 17 stats, 7 charts, 5 composite, 4 market (all self-contained with mock fallbacks)
+- [x] 36 widgets: 17 stats, 8 charts, 5 composite, 4 market (all self-contained with mock fallbacks)
 - [x] Widget registry with lazy loading via `next/dynamic`
 - [x] Zustand store for dashboard layout with localStorage persist
 - [x] Advanced calculation utilities (expectancy, streaks, drawdown, distribution, etc.)
@@ -68,8 +68,8 @@
 ---
 
 ## Phase 5 — Analytics
-- [-] Page scaffolded, PerformanceCalendar component wired up
-- [x] Trading Performance Calendar (monthly grid with daily P&L, win rate, weekly summaries)
+- [-] Page scaffolded (placeholder — charts coming soon)
+- [x] Performance Calendar moved to dashboard widget (`performance-calendar`, 12-col chart widget)
 - [x] Widget data API endpoint (`/api/widget-data`) — serves stats, daily P&L, by-weekday, by-hour, by-asset-class, by-symbol, drawdown, distribution via `?fields=` param; mock fallback on error
 - [ ] Cumulative P&L curve chart (Recharts or lightweight-charts)
 - [ ] P&L by day / week / month bar chart
