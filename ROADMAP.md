@@ -69,17 +69,18 @@
 
 ---
 
-## Phase 5 — Analytics
-- [-] Page scaffolded (placeholder — charts coming soon)
+## Phase 5 — Analytics & Reports (merged)
+- [x] Combined analytics + reports into single `/reports` page ("Analytics & Reports")
 - [x] Performance Calendar moved to dashboard widget (`performance-calendar`, 12-col chart widget)
 - [x] Widget data API endpoint (`/api/widget-data`) — serves stats, daily P&L, by-weekday, by-hour, by-asset-class, by-symbol, drawdown, distribution via `?fields=` param; mock fallback on error
-- [ ] Cumulative P&L curve chart (Recharts or lightweight-charts)
-- [ ] P&L by day / week / month bar chart
-- [ ] Win/loss ratio breakdown
-- [ ] Performance by asset class
-- [ ] Performance by symbol (top gainers / losers)
-- [ ] Average winner vs average loser
-- [ ] Date range filter
+- [x] Tabbed layout (Performance, Overview, Compare, Calendar)
+- [x] Report calculation utilities (`lib/utils/report-calculations.ts`)
+- [x] Performance tab: Cumulative P&L chart, Avg Daily Win/Loss chart, Performance Summary Grid
+- [x] Overview tab: summary stats + Monthly P&L bar chart
+- [x] Compare tab: first-half vs second-half period comparison
+- [x] Calendar tab: daily P&L grouped by month with color-coded cells
+- [x] Export PDF button component (html2canvas + jsPDF)
+- [x] FilterBar integration for all report tabs
 
 ---
 
@@ -150,20 +151,7 @@
 
 ---
 
-## Phase 12 — Reports
-- [x] Reports page with tabbed layout (Performance, Overview, Compare, Calendar)
-- [x] Report calculation utilities (`lib/utils/report-calculations.ts`)
-- [x] Performance tab: Cumulative P&L chart, Avg Daily Win/Loss chart, Performance Summary Grid (Summary/Days/Trades sub-tabs)
-- [x] Overview tab: summary stats + Monthly P&L bar chart
-- [x] Compare tab: first-half vs second-half period comparison
-- [x] Calendar tab: daily P&L grouped by month with color-coded cells
-- [x] Export PDF button component (html2canvas + jsPDF)
-- [x] Sidebar nav link for Reports
-- [x] FilterBar integration for all report tabs
-
----
-
-## Phase 13 — Polish & Quality
+## Phase 12 — Polish & Quality
 - [x] Display Mode Switcher (dollar, %, privacy, R-multiple, ticks, pips, points) with Zustand persist
 - [ ] Loading skeletons for all data-fetching pages
 - [ ] Error states and empty states throughout

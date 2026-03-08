@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -16,18 +17,6 @@ interface CalendarEvent {
 
 type Impact = "HIGH" | "MED" | "LOW";
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-
-const MOCK_CALENDAR: CalendarEvent[] = [
-  { day: "Today", time: "08:30", name: "CPI m/m", impact: "HIGH", forecast: "0.3%", previous: "0.4%" },
-  { day: "Today", time: "08:30", name: "Core CPI m/m", impact: "HIGH", forecast: "0.3%", previous: "0.3%" },
-  { day: "Today", time: "10:00", name: "Fed Chair Speech", impact: "HIGH", forecast: "\u2014", previous: "\u2014" },
-  { day: "Today", time: "14:00", name: "Beige Book", impact: "MED", forecast: "\u2014", previous: "\u2014" },
-  { day: "Tomorrow", time: "08:30", name: "PPI m/m", impact: "MED", forecast: "0.2%", previous: "0.3%" },
-  { day: "Tomorrow", time: "08:30", name: "Jobless Claims", impact: "MED", forecast: "215K", previous: "218K" },
-  { day: "Tomorrow", time: "10:00", name: "Crude Oil Inventories", impact: "LOW", forecast: "-1.1M", previous: "2.3M" },
-];
-
 // ── Styles ───────────────────────────────────────────────────────────────────
 
 const impactStyles: Record<Impact, string> = {
@@ -36,11 +25,31 @@ const impactStyles: Record<Impact, string> = {
   LOW: "bg-white/10 text-muted-foreground",
 };
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function getCurrentWeekRange() {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const day = now.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(monday.getDate() + diffToMonday);
+  const sunday = new Date(monday);
+  sunday.setDate(sunday.getDate() + 6);
+  return {
+    from: monday.toISOString().split("T")[0],
+    to: sunday.toISOString().split("T")[0],
+  };
+}
+
 // ── Event Row ────────────────────────────────────────────────────────────────
 
-function EventRow({ event }: { event: CalendarEvent }) {
+function EventRow({ event, onClick }: { event: CalendarEvent; onClick: () => void }) {
   return (
-    <div className="flex items-center gap-2 rounded-lg p-2 hover:bg-white/5 transition-colors">
+    <div
+      onClick={onClick}
+      className="flex items-center gap-2 rounded-lg p-2 hover:bg-white/5 transition-colors cursor-pointer"
+    >
       <span className="w-9 shrink-0 text-[11px] font-mono text-muted-foreground">
         {event.time}
       </span>
@@ -70,17 +79,21 @@ function EventRow({ event }: { event: CalendarEvent }) {
 // ── Economic Calendar Widget ─────────────────────────────────────────────────
 
 export default function EconomicCalendarWidget() {
-  const [events, setEvents] = useState<CalendarEvent[]>(MOCK_CALENDAR);
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    fetch("/api/calendar")
+    const { from, to } = getCurrentWeekRange();
+    fetch(`/api/calendar?from=${from}&to=${to}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.events && data.events.length > 0) {
           setEvents(data.events);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   // Group events by day, preserving insertion order (Today first, then Tomorrow, then later days)
@@ -106,19 +119,27 @@ export default function EconomicCalendarWidget() {
       </p>
 
       <div className="flex flex-col gap-3 overflow-y-auto scrollbar-thin flex-1">
-        {sortedDays.map((day) => {
-          if (remaining <= 0) return null;
-          const dayEvents = grouped[day].slice(0, remaining);
-          remaining -= dayEvents.length;
-          return (
-            <div key={day}>
-              <p className="mb-1.5 text-xs font-semibold text-foreground/60">{day}</p>
-              <div className="flex flex-col gap-1">
-                {dayEvents.map((ev, i) => <EventRow key={i} event={ev} />)}
+        {loading ? (
+          <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
+        ) : sortedDays.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">No events this week</p>
+        ) : (
+          sortedDays.map((day) => {
+            if (remaining <= 0) return null;
+            const dayEvents = grouped[day].slice(0, remaining);
+            remaining -= dayEvents.length;
+            return (
+              <div key={day}>
+                <p className="mb-1.5 text-xs font-semibold text-foreground/60">{day}</p>
+                <div className="flex flex-col gap-1">
+                  {dayEvents.map((ev, i) => (
+                    <EventRow key={i} event={ev} onClick={() => router.push("/calendar")} />
+                  ))}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );

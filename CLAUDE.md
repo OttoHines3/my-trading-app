@@ -49,7 +49,7 @@ Required in `.env.local`:
 
 **Routing**: All main app pages live under `app/(dashboard)/` and share a layout (`Sidebar` + `Header`). The root `app/page.tsx` is a landing/redirect page separate from the dashboard group.
 
-**Dashboard routes**: `/` (home), `/journal`, `/journal/new`, `/journal/[id]`, `/analytics`, `/calendar`, `/news`, `/watchlist`, `/portfolio`, `/psychology`.
+**Dashboard routes**: `/` (home), `/journal`, `/journal/new`, `/journal/[id]`, `/reports` (Analytics & Reports), `/calendar`, `/news`, `/watchlist`, `/portfolio`, `/psychology`.
 
 **Data layer**:
 - `lib/prisma.ts` — singleton `PrismaClient` (standard dev hot-reload guard)
