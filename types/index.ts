@@ -3,6 +3,7 @@ export type AssetClass = "stocks" | "options" | "crypto" | "forex" | "futures";
 
 export interface Trade {
   id: string;
+  externalId?: string | null; // Order ID from broker CSV
   symbol: string;
   side: TradeSide;
   assetClass: AssetClass;

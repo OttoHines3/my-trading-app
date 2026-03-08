@@ -37,8 +37,14 @@ function formatDateLabel(dateStr: string): string {
   });
 }
 
-function formatTime(dateStr: string): string {
+function formatTime(dateStr: string): string | null {
   const d = new Date(dateStr);
+  const hours = d.getUTCHours();
+  const minutes = d.getUTCMinutes();
+  const seconds = d.getUTCSeconds();
+  // If time is exactly noon (12:00:00) it's a placeholder — no real time available
+  if (hours === 12 && minutes === 0 && seconds === 0) return null;
+  if (hours === 0 && minutes === 0 && seconds === 0) return null;
   return d.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
@@ -332,7 +338,9 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                               className="border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer"
                             >
                               <td className="px-4 py-4 text-sm text-gray-300">
-                                {formatTime(trade.entryDate)}
+                                {formatTime(trade.entryDate) ?? (
+                                  <span title="Time not available in TradeStation CSV export" className="text-gray-500 cursor-help">—</span>
+                                )}
                               </td>
                               <td className="px-4 py-4 text-sm text-gray-300">
                                 {getOptionSide(trade)}

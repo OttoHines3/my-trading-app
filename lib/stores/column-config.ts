@@ -10,7 +10,7 @@ export interface ColumnDef {
 
 export const ALL_COLUMNS: ColumnDef[] = [
   { key: "checkbox", label: "", align: "center" },
-  { key: "entryDate", label: "Open Time", sortField: "entryDate" },
+  { key: "entryDate", label: "Date", sortField: "entryDate" },
   { key: "symbol", label: "Symbol", sortField: "symbol" },
   { key: "side", label: "Side" },
   { key: "assetClass", label: "Asset Class" },

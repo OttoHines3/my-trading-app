@@ -138,8 +138,9 @@
 - [ ] Wire TradeStation open positions count into dashboard stat cards
 - [ ] Order placement UI
 - [x] CSV trade import (`/api/trades/import`) — auto-detects common broker column names, bulk creates Trade records
-- [x] TradeStation CSV parser (`lib/parsers/tradestation.ts`) — groups executions into round-trip trades, handles options symbols, weighted avg prices
+- [x] TradeStation CSV parser (`lib/parsers/tradestation.ts`) — 1:1 row-to-trade mapping, Order ID as externalId, handles options symbols, normalized strike prices, no fake times
 - [x] CSV upload UI on portfolio page (drag-and-drop, file picker, broker selector) as alternative to TradeStation sync
+- [x] Duplicate import prevention via `externalId` (Order ID) upsert
 - [x] Multi-account system — Zustand store (`lib/stores/trading-accounts.ts`), account naming modal after import, account switcher dropdown with checkboxes (All accounts / individual), manage/rename/delete accounts
 - [ ] Trade history sync (import closed trades from TradeStation to Trade Journal)
 
@@ -158,6 +159,9 @@
 - [x] Checkbox column for bulk selection, gear icon, row click navigation to `/trades/[id]`
 - [x] Single Trade Detail page (`/trades/[id]`) with header, tabs, stats panel, chart placeholder
 - [x] Prev/next trade navigation arrows on trade detail page
+- [x] AG Charts Enterprise candlestick chart on trade detail page (entry/exit markers, timeframe selector, dark theme)
+- [x] AG Charts sparkline on trade stats panel (replaced Recharts)
+- [x] Finnhub candle data API route (`/api/candles`) with resolution support
 - [x] Sidebar "Trade View" nav link
 - [x] DayDetailModal rows clickable → navigate to `/trades/[id]`
 - [x] Dashboard templates (create, rename, duplicate, delete, switch) with v1→v2 store migration

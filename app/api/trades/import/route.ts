@@ -114,8 +114,12 @@ async function handleTradeStationImport(text: string, accountId: string) {
     );
   }
 
-  const created = await prisma.trade.createMany({
-    data: result.trades.map((t) => ({
+  // Upsert on externalId (Order ID) to prevent duplicates on re-import
+  let importedCount = 0;
+  let skippedCount = 0;
+
+  for (const t of result.trades) {
+    const tradeData = {
       userId,
       symbol: t.symbol,
       side: t.side,
@@ -127,18 +131,36 @@ async function handleTradeStationImport(text: string, accountId: string) {
       exitDate: t.exitDate,
       pnl: t.pnl,
       notes: t.notes || null,
-      tags: [],
-    })),
-  });
+      tags: [] as string[],
+    };
+
+    if (t.externalId) {
+      const result = await prisma.trade.upsert({
+        where: { externalId: t.externalId },
+        update: tradeData,
+        create: { ...tradeData, externalId: t.externalId },
+      });
+      // If updatedAt > createdAt by less than 1s, it was just created
+      const wasCreated = result.updatedAt.getTime() - result.createdAt.getTime() < 1000;
+      if (wasCreated) importedCount++;
+      else skippedCount++;
+    } else {
+      await prisma.trade.create({ data: tradeData });
+      importedCount++;
+    }
+  }
 
   const accountNote = result.accountInfo
     ? ` (Account: ${result.accountInfo.account}, ${result.accountInfo.dateRange})`
     : "";
 
+  const skipNote = skippedCount > 0 ? ` ${skippedCount} duplicate(s) updated.` : "";
+
   return NextResponse.json({
-    imported: created.count,
+    imported: importedCount,
+    updated: skippedCount,
     errors: result.errors.length > 0 ? result.errors : undefined,
-    message: `Successfully imported ${created.count} trade${created.count !== 1 ? "s" : ""} from TradeStation${accountNote}${result.errors.length > 0 ? `. ${result.errors.length} row(s) skipped.` : "."}`,
+    message: `Successfully imported ${importedCount} trade${importedCount !== 1 ? "s" : ""} from TradeStation${accountNote}.${skipNote}${result.errors.length > 0 ? ` ${result.errors.length} row(s) had errors.` : ""}`,
   });
 }
 

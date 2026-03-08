@@ -9,6 +9,7 @@ datasource db {
 model Trade {
   id           String   @id @default(cuid())
   userId       String
+  externalId   String?  @unique // Order ID from broker CSV — used for dedup on re-import
   symbol       String
   side         String   // "long" | "short"
   assetClass   String   // "stocks" | "options" | "crypto" | "forex" | "futures"

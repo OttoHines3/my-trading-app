@@ -1,49 +1,40 @@
 /**
  * TradeStation Historical Activity Report CSV Parser
  *
- * Format:
- *   - Metadata header block (# --- lines, report info, account info)
- *   - Column headers: Date, Symbol, CUSIP, Side, Quantity, Price, Principal, Commission, Other Fees, Net Amount, Order ID
- *   - Each row is a single execution treated as its own individual trade
- *   - Side: empty or "BuyToOpen"/"SellToOpen" for opens, "SellToClose"/"BuyToClose" for closes
- *   - Symbol format for options: "SPY 260107C693" → underlying YYMMDD[C/P]Strike
- *
- * Handles: trailing commas from spreadsheet exports, tab-delimited files,
- * quoted values, BOM characters, mixed line endings.
+ * CSV structure:
+ *   - Metadata rows at top (# --- lines, report info, account info)
+ *   - Columns: Date | Symbol | CUSIP | Side | Quantity | Price |
+ *     Principal | Commission | Other Fees | Net Amount | Order ID
+ *   - NO Time column — only Date in MM/DD/YYYY format
+ *   - Each row maps 1:1 to a trade (no grouping/pairing)
+ *   - Order ID is the unique identifier (e.g. "1222082534LEG1")
+ *   - Symbol format for options: "SPY 260107C693" (ticker YYMMDD C/P strike)
  */
 
-interface Execution {
-  date: string;
-  symbol: string;
-  cusip: string;
-  side: string;
-  quantity: number;
-  price: number;
-  principal: number;
-  commission: number;
-  otherFees: number;
-  netAmount: number;
-  orderId: string;
-}
-
-interface GroupedTrade {
-  symbol: string;
-  underlying: string;
+export interface ParsedTrade {
+  externalId: string;
+  rawSymbol: string;
+  symbol: string;        // underlying ticker
+  instrument: string;    // formatted option description
   assetClass: "stocks" | "options" | "futures";
   side: "long" | "short";
-  entryDate: Date;
-  exitDate: Date;
+  isClosingTrade: boolean;
+  quantity: number;
   entryPrice: number;
   exitPrice: number;
-  quantity: number;
   pnl: number;
-  commissions: number;
+  netAmount: number;
   fees: number;
+  commission: number;
+  orderId: string;
+  status: "win" | "loss" | "breakeven" | "open";
+  entryDate: Date;
+  exitDate: Date;
   notes: string;
 }
 
 export interface ParsedTradeResult {
-  trades: GroupedTrade[];
+  trades: ParsedTrade[];
   errors: string[];
   accountInfo?: {
     account: string;
@@ -56,8 +47,8 @@ function parseNumber(val: string): number {
   return parseFloat(val.replace(/[$,\s]/g, "")) || 0;
 }
 
+/** Parse MM/DD/YYYY to Date (noon, no fake time) */
 function parseDate(val: string): Date {
-  // TradeStation uses MM/DD/YYYY
   const parts = val.trim().split("/");
   if (parts.length === 3) {
     const [m, d, y] = parts.map(Number);
@@ -66,16 +57,49 @@ function parseDate(val: string): Date {
   return new Date(val);
 }
 
+/** Format MM/DD/YYYY to YYYY-MM-DD */
+function formatDateISO(dateStr: string): string {
+  const [mm, dd, yyyy] = dateStr.split("/");
+  return `${yyyy}-${mm.padStart(2, "0")}-${dd.padStart(2, "0")}`;
+}
+
 /** Parse TradeStation options symbol like "SPY 260107C693" */
 function parseOptionSymbol(sym: string): { underlying: string; expiry: string; type: string; strike: string } | null {
-  const match = sym.match(/^(\w+)\s+(\d{6})([CP])(\d+)$/);
+  const match = sym.match(/^([A-Z/]+)\s+(\d{6})([CP])(\d+)$/i);
   if (!match) return null;
   return {
     underlying: match[1],
     expiry: match[2],
-    type: match[3] === "C" ? "Call" : "Put",
+    type: match[3].toUpperCase() === "C" ? "Call" : "Put",
     strike: match[4],
   };
+}
+
+/** Format raw symbol to human-readable instrument: "01-07-2026 693 CALL" */
+function formatInstrument(rawSymbol: string): string {
+  const match = rawSymbol.trim().match(/^([A-Z/]+)\s+(\d{2})(\d{2})(\d{2})(C|P)(\d+)$/i);
+  if (!match) return rawSymbol;
+  const [, , yy, mm, dd, type, strikeRaw] = match;
+  const expiry = `${mm}-${dd}-20${yy}`;
+  let strike = parseInt(strikeRaw, 10);
+  if (strike > 10000) strike = Math.round(strike / 100);
+  else if (strike > 1000) strike = Math.round(strike / 10);
+  const optionType = type.toUpperCase() === "C" ? "CALL" : "PUT";
+  return `${expiry} ${strike} ${optionType}`;
+}
+
+/** Extract underlying ticker from raw symbol */
+function extractUnderlying(rawSymbol: string): string {
+  const match = rawSymbol.match(/^([A-Z/]+)\s+/);
+  return match ? match[1] : rawSymbol;
+}
+
+/** Normalize strike price from TradeStation encoding */
+function normalizeStrike(strikeRaw: string): number {
+  const strike = parseInt(strikeRaw, 10);
+  if (strike > 10000) return Math.round(strike / 100);
+  if (strike > 1000) return Math.round(strike / 10);
+  return strike;
 }
 
 function isCloseSide(side: string): boolean {
@@ -83,27 +107,21 @@ function isCloseSide(side: string): boolean {
   return s === "selltoclose" || s === "buytoclose";
 }
 
-function isShortOpen(side: string): boolean {
-  return side.toLowerCase().trim() === "selltoopen";
-}
-
 /** Strip BOM and normalize line endings */
 function cleanText(text: string): string {
   return text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
-/** Detect delimiter: if splitting first data-looking line by tab gives more columns than comma, use tab */
+/** Detect delimiter: tab vs comma */
 function detectDelimiter(text: string): string {
   const lines = text.split("\n");
   for (const line of lines) {
-    // Find a line that looks like data (starts with a date pattern MM/DD/YYYY)
     if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(line.trim())) {
       const commaCount = line.split(",").length;
       const tabCount = line.split("\t").length;
       return tabCount > commaCount ? "\t" : ",";
     }
   }
-  // Fallback: check the header line
   for (const line of lines) {
     if (line.includes("Date") && line.includes("Symbol")) {
       const commaCount = line.split(",").length;
@@ -166,10 +184,8 @@ function parseCSVRows(text: string): {
   let headerIdx = -1;
   let accountInfo: { account: string; dateRange: string; type: string } | undefined;
 
-  // Extract account info from metadata and find column headers
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i].trim();
-    // For metadata, get the first cell value (before any delimiter)
     const firstCell = raw.split(delimiter)[0].trim();
 
     if (firstCell.startsWith("Account:")) {
@@ -185,7 +201,6 @@ function parseCSVRows(text: string): {
       accountInfo.type = firstCell.replace("Type:", "").trim();
     }
 
-    // Detect column header row: split by delimiter and check for known column names
     const cells = splitLine(raw, delimiter);
     const cellValues = cells.map((c) => c.toLowerCase().trim());
     if (cellValues.includes("date") && cellValues.includes("symbol") && cellValues.includes("quantity")) {
@@ -198,20 +213,14 @@ function parseCSVRows(text: string): {
     return { headers: [], rows: [], accountInfo };
   }
 
-  // Parse header — strip trailing empty columns (from spreadsheet export)
   const rawHeaders = splitLine(lines[headerIdx], delimiter);
   const headers = stripTrailingEmpty(rawHeaders);
 
-  // Parse data rows
   const rows: string[][] = [];
   for (let i = headerIdx + 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line || line.startsWith("#")) continue;
-
     const cells = splitLine(line, delimiter);
-
-    // Only require that we have at least a date and symbol (first 2 columns)
-    // Don't require matching header length — trailing columns may be missing
     if (cells.length >= 2 && cells[0]) {
       rows.push(cells);
     }
@@ -221,7 +230,8 @@ function parseCSVRows(text: string): {
 }
 
 /**
- * Main parser: takes raw CSV text, returns grouped trades.
+ * Main parser: takes raw CSV text, returns 1:1 mapped trades.
+ * Every CSV data row becomes exactly one trade. No pairing/grouping.
  */
 export function parseTradeStationCSV(text: string): ParsedTradeResult {
   const { headers, rows, accountInfo } = parseCSVRows(text);
@@ -247,7 +257,6 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
   const sideCol = colIdx["side"] ?? -1;
   const quantityCol = colIdx["quantity"] ?? -1;
   const priceCol = colIdx["price"] ?? -1;
-  const principalCol = colIdx["principal"] ?? -1;
   const commissionCol = colIdx["commission"] ?? -1;
   const otherFeesCol = colIdx["otherfees"] ?? -1;
   const netAmountCol = colIdx["netamount"] ?? -1;
@@ -261,84 +270,101 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
     };
   }
 
-  // Parse all executions
-  const executions: Execution[] = [];
-  for (let i = 0; i < rows.length; i++) {
-    const row = rows[i];
-    const rowNum = i + 1;
+  // Filter to only rows where Date matches MM/DD/YYYY (skip metadata rows that leaked through)
+  const dataRows = rows.filter((row) => {
+    const date = (row[dateCol] || "").trim();
+    return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(date);
+  });
 
-    const date = row[dateCol] || "";
-    const symbol = row[symbolCol] || "";
-    if (!date || !symbol) {
-      errors.push(`Row ${rowNum}: missing date or symbol`);
-      continue;
-    }
+  console.log(`[TS Parser] CSV rows found: ${dataRows.length}`);
 
-    // Safely access columns — row may be shorter than header count
-    const safeGet = (col: number): string => (col >= 0 && col < row.length) ? (row[col] || "") : "";
-
-    executions.push({
-      date,
-      symbol,
-      cusip: safeGet(colIdx["cusip"] ?? -1),
-      side: safeGet(sideCol),
-      quantity: quantityCol >= 0 ? parseNumber(safeGet(quantityCol)) : 0,
-      price: priceCol >= 0 ? parseNumber(safeGet(priceCol)) : 0,
-      principal: principalCol >= 0 ? parseNumber(safeGet(principalCol)) : 0,
-      commission: commissionCol >= 0 ? parseNumber(safeGet(commissionCol)) : 0,
-      otherFees: otherFeesCol >= 0 ? parseNumber(safeGet(otherFeesCol)) : 0,
-      netAmount: netAmountCol >= 0 ? parseNumber(safeGet(netAmountCol)) : 0,
-      orderId: safeGet(orderIdCol),
-    });
-  }
-
-  if (executions.length === 0) {
+  if (dataRows.length === 0) {
     return {
       trades: [],
-      errors: errors.length > 0 ? errors : [`No data rows found after headers. Found ${rows.length} rows but none had valid date/symbol.`],
+      errors: errors.length > 0 ? errors : [`No data rows found after headers. Found ${rows.length} rows but none had valid MM/DD/YYYY dates.`],
       accountInfo,
     };
   }
 
-  // Each CSV row = one individual trade. No pairing/grouping.
-  const trades: GroupedTrade[] = [];
+  // Map each row 1:1 to a trade
+  const trades: ParsedTrade[] = [];
 
-  for (const exec of executions) {
-    const optionInfo = parseOptionSymbol(exec.symbol);
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    const rowNum = i + 1;
+
+    const safeGet = (col: number): string => (col >= 0 && col < row.length) ? (row[col] || "") : "";
+
+    const dateStr = (row[dateCol] || "").trim();
+    const rawSymbol = (row[symbolCol] || "").trim();
+    const side = safeGet(sideCol).trim();
+    const orderId = safeGet(orderIdCol).trim();
+    const qty = Math.abs(parseNumber(safeGet(quantityCol)));
+    const price = Math.abs(parseNumber(safeGet(priceCol)));
+    const netAmount = parseNumber(safeGet(netAmountCol));
+    const fees = Math.abs(parseNumber(safeGet(otherFeesCol)));
+    const commission = Math.abs(parseNumber(safeGet(commissionCol)));
+
+    if (!dateStr || !rawSymbol) {
+      errors.push(`Row ${rowNum}: missing date or symbol`);
+      continue;
+    }
+
+    const isClose = isCloseSide(side);
+    const tradeSide: "long" | "short" = side.toLowerCase().includes("buy") ? "long" : "short";
+
+    // Only closing trades have realized P&L
+    const pnl = isClose ? netAmount : 0;
+    const status: "win" | "loss" | "breakeven" | "open" = !isClose
+      ? "open"
+      : pnl > 0 ? "win"
+      : pnl < 0 ? "loss"
+      : "breakeven";
+
+    const optionInfo = parseOptionSymbol(rawSymbol);
     const assetClass = optionInfo ? "options" : "stocks";
-
-    // Determine side from the Side column
-    const sideLower = exec.side.toLowerCase().trim();
-    const isShort = sideLower === "selltoopen" || sideLower === "selltoclose" || sideLower === "sell";
-    const side = isShort ? "short" : "long";
-
-    const tradeDate = parseDate(exec.date);
-    const quantity = Math.abs(exec.quantity);
+    const underlying = extractUnderlying(rawSymbol);
+    const instrument = formatInstrument(rawSymbol);
+    const tradeDate = parseDate(dateStr);
 
     const noteParts: string[] = [];
     if (optionInfo) {
-      noteParts.push(`${optionInfo.underlying} ${optionInfo.expiry.slice(0, 2)}/${optionInfo.expiry.slice(2, 4)}/${optionInfo.expiry.slice(4, 6)} ${optionInfo.type} $${optionInfo.strike}`);
+      noteParts.push(`${optionInfo.underlying} ${optionInfo.expiry.slice(0, 2)}/${optionInfo.expiry.slice(2, 4)}/${optionInfo.expiry.slice(4, 6)} ${optionInfo.type} $${normalizeStrike(optionInfo.strike)}`);
     }
-    if (exec.commission) noteParts.push(`Commission: $${Math.abs(exec.commission).toFixed(2)}`);
-    if (exec.otherFees) noteParts.push(`Fees: $${Math.abs(exec.otherFees).toFixed(2)}`);
+    noteParts.push(`Side: ${side}`);
+    if (commission) noteParts.push(`Commission: $${commission.toFixed(2)}`);
+    if (fees) noteParts.push(`Fees: $${fees.toFixed(2)}`);
+    if (orderId) noteParts.push(`Order: ${orderId}`);
 
-    if (quantity > 0) {
-      trades.push({
-        symbol: exec.symbol,  // Store full symbol e.g. "SPY 260306C6790"
-        underlying: optionInfo ? optionInfo.underlying : exec.symbol,
-        assetClass,
-        side,
-        entryDate: tradeDate,
-        exitDate: tradeDate,
-        entryPrice: exec.price,
-        exitPrice: exec.price,
-        quantity,
-        pnl: exec.netAmount,
-        commissions: Math.abs(exec.commission),
-        fees: Math.abs(exec.otherFees),
-        notes: noteParts.join(" | "),
-      });
-    }
+    trades.push({
+      externalId: orderId,
+      rawSymbol,
+      symbol: underlying,
+      instrument,
+      assetClass,
+      side: tradeSide,
+      isClosingTrade: isClose,
+      quantity: qty,
+      entryPrice: isClose ? 0 : price,
+      exitPrice: isClose ? price : 0,
+      pnl,
+      netAmount,
+      fees,
+      commission,
+      orderId,
+      status,
+      entryDate: tradeDate,
+      exitDate: tradeDate,
+      notes: noteParts.join(" | "),
+    });
+  }
+
+  console.log(`[TS Parser] Trades parsed: ${trades.length}`);
+  // These two numbers MUST match
+  if (trades.length !== dataRows.length) {
+    const msg = `MISMATCH: ${dataRows.length} CSV rows but ${trades.length} trades parsed. ${dataRows.length - trades.length} rows were lost.`;
+    console.error(`[TS Parser] ${msg}`);
+    errors.push(msg);
   }
 
   trades.sort((a, b) => a.entryDate.getTime() - b.entryDate.getTime());

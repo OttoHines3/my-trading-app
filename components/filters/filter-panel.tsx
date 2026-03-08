@@ -136,9 +136,11 @@ export function FilterPanel({ isOpen, onClose }: Props) {
                     {isExpanded && (
                       <div className="ml-6 space-y-0.5 pb-1">
                         {item.options.map((opt) => (
-                          <label
+                          <button
                             key={opt}
-                            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-white/5 cursor-pointer transition-colors"
+                            type="button"
+                            onClick={() => toggleArrayItem(filterKey, opt)}
+                            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-white/5 cursor-pointer transition-colors"
                           >
                             <div className={cn(
                               "flex h-3.5 w-3.5 items-center justify-center rounded border transition-colors",
@@ -153,7 +155,7 @@ export function FilterPanel({ isOpen, onClose }: Props) {
                               )}
                             </div>
                             <span className="capitalize">{opt}</span>
-                          </label>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -243,7 +245,7 @@ export function FilterPanel({ isOpen, onClose }: Props) {
           </button>
           <button
             onClick={onClose}
-            className="rounded-lg bg-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-primary/90 transition-colors"
+            className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-500 transition-colors"
           >
             Apply filters
           </button>
