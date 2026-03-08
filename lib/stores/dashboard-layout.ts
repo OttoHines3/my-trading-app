@@ -3,19 +3,22 @@ import { persist } from "zustand/middleware";
 import type { LayoutItem, DashboardTemplate } from "@/types/dashboard";
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
-  { widgetId: "total-pnl", colSpan: 3, rowSpan: 1, order: 0 },
-  { widgetId: "win-rate", colSpan: 3, rowSpan: 1, order: 1 },
-  { widgetId: "trades-today", colSpan: 3, rowSpan: 1, order: 2 },
-  { widgetId: "profit-factor", colSpan: 3, rowSpan: 1, order: 3 },
-  { widgetId: "cumulative-pnl", colSpan: 8, rowSpan: 2, order: 4 },
-  { widgetId: "performance-summary", colSpan: 4, rowSpan: 2, order: 5 },
-  { widgetId: "recent-trades", colSpan: 6, rowSpan: 2, order: 6 },
-  { widgetId: "news-feed", colSpan: 6, rowSpan: 2, order: 7 },
-  { widgetId: "performance-calendar", colSpan: 12, rowSpan: 3, order: 8 },
-  { widgetId: "tradedesk-score", colSpan: 6, rowSpan: 2, order: 9 },
-  { widgetId: "economic-calendar", colSpan: 6, rowSpan: 2, order: 10 },
-  { widgetId: "market-overview", colSpan: 6, rowSpan: 2, order: 11 },
+  // Top row: 5 stat cards (colSpan 1 = one slot in the 5-col top grid)
+  { widgetId: "total-pnl", colSpan: 1, rowSpan: 1, order: 0 },
+  { widgetId: "win-rate", colSpan: 1, rowSpan: 1, order: 1 },
+  { widgetId: "profit-factor", colSpan: 1, rowSpan: 1, order: 2 },
+  { widgetId: "day-win-rate", colSpan: 1, rowSpan: 1, order: 3 },
+  { widgetId: "expectancy", colSpan: 1, rowSpan: 1, order: 4 },
+  // Bottom section: medium widgets (12-col grid)
+  { widgetId: "tradedesk-score", colSpan: 4, rowSpan: 2, order: 5 },
+  { widgetId: "cumulative-pnl", colSpan: 4, rowSpan: 2, order: 6 },
+  { widgetId: "daily-pnl-bars", colSpan: 4, rowSpan: 2, order: 7 },
+  { widgetId: "recent-trades", colSpan: 6, rowSpan: 2, order: 8 },
+  { widgetId: "news-feed", colSpan: 6, rowSpan: 2, order: 9 },
+  { widgetId: "performance-calendar", colSpan: 7, rowSpan: 3, order: 10 },
+  { widgetId: "performance-summary", colSpan: 5, rowSpan: 3, order: 11 },
   { widgetId: "top-symbols", colSpan: 6, rowSpan: 2, order: 12 },
+  { widgetId: "economic-calendar", colSpan: 6, rowSpan: 2, order: 13 },
 ];
 
 function createDefaultTemplate(): DashboardTemplate {
@@ -163,25 +166,17 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
     }),
     {
       name: "dashboard-layout",
-      version: 3,
+      version: 4,
       migrate: (persisted: unknown, version: number) => {
         if (version === 0 || version === 1) {
-          // v1 had flat { layout, isEditMode }
-          const old = persisted as { layout?: LayoutItem[]; isEditMode?: boolean };
-          const migratedTemplate: DashboardTemplate = {
-            id: "default",
-            name: "Default",
-            layout: old.layout ?? DEFAULT_LAYOUT,
-            createdAt: new Date().toISOString(),
-          };
           return {
-            templates: [migratedTemplate],
+            templates: [createDefaultTemplate()],
             activeTemplateId: "default",
             isEditMode: false,
           };
         }
-        // v2 → v3: update default template layout with new widgets (performance-calendar, tradedesk-score, top-symbols)
-        if (version === 2) {
+        // v2/v3 → v4: reset default template to new two-section layout
+        if (version === 2 || version === 3) {
           const state = persisted as Record<string, unknown>;
           const templates = Array.isArray(state.templates) ? state.templates as DashboardTemplate[] : [];
           const updated = templates.map((t) => {
@@ -197,7 +192,7 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
           } as DashboardLayoutState;
         }
 
-        // v3 data — validate templates aren't corrupted
+        // v4 data — validate templates aren't corrupted
         const state = persisted as Record<string, unknown>;
         const templates = Array.isArray(state.templates) && state.templates.length > 0
           ? state.templates as DashboardTemplate[]

@@ -17,16 +17,26 @@ const categoryLabels: Record<WidgetCategory, string> = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  section?: "top" | "bottom";
 }
 
-export function WidgetLibraryModal({ isOpen, onClose }: Props) {
+export function WidgetLibraryModal({ isOpen, onClose, section }: Props) {
   const addWidget = useDashboardLayout((s) => s.addWidget);
   const activeLayout = useDashboardLayout((s) => {
     const template = s.templates.find((t) => t.id === s.activeTemplateId) ?? s.templates[0];
     return template?.layout ?? [];
   });
   const activeWidgetIds = new Set(activeLayout.map((item) => item.widgetId));
-  const widgetsByCategory = getWidgetsByCategory();
+  const allWidgets = getWidgetsByCategory();
+
+  // Filter categories based on which section the user is adding to
+  const widgetsByCategory = section === "top"
+    ? { stats: allWidgets.stats } as Record<WidgetCategory, typeof allWidgets.stats>
+    : section === "bottom"
+      ? (Object.fromEntries(
+          Object.entries(allWidgets).filter(([cat]) => cat !== "stats")
+        ) as Record<WidgetCategory, typeof allWidgets.stats>)
+      : allWidgets;
 
   if (!isOpen) return null;
 
@@ -37,13 +47,15 @@ export function WidgetLibraryModal({ isOpen, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-foreground">Widget Library</h2>
+          <h2 className="text-lg font-bold text-foreground">
+            {section === "top" ? "Add Stat Widget" : section === "bottom" ? "Add Widget" : "Widget Library"}
+          </h2>
           <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-white/10 transition-colors">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
-        {(Object.entries(widgetsByCategory) as [WidgetCategory, typeof widgetsByCategory[WidgetCategory]][]).map(([category, widgets]) => (
+        {(Object.entries(widgetsByCategory) as [WidgetCategory, typeof allWidgets[WidgetCategory]][]).map(([category, widgets]) => (
           <div key={category} className="mb-6 last:mb-0">
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               {categoryLabels[category]}
@@ -51,12 +63,15 @@ export function WidgetLibraryModal({ isOpen, onClose }: Props) {
             <div className="grid grid-cols-2 gap-2">
               {widgets.map((widget) => {
                 const isActive = activeWidgetIds.has(widget.id);
+                // For stats added via top section, force colSpan to 1, rowSpan to 1
+                const colSpan = section === "top" ? 1 : widget.defaultColSpan;
+                const rowSpan = section === "top" ? 1 : widget.defaultRowSpan;
                 return (
                   <button
                     key={widget.id}
                     disabled={isActive}
                     onClick={() => {
-                      addWidget(widget.id, widget.defaultColSpan, widget.defaultRowSpan);
+                      addWidget(widget.id, colSpan, rowSpan);
                       onClose();
                     }}
                     className={cn(

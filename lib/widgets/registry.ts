@@ -226,7 +226,7 @@ const widgets: WidgetDefinition[] = [
     name: "Performance Calendar",
     description: "Monthly calendar with daily P&L, trade count, and win rate",
     category: "charts",
-    defaultColSpan: 12,
+    defaultColSpan: 7,
     defaultRowSpan: 3,
     component: dynamic(() => import("@/components/widgets/charts/performance-calendar")),
   },
