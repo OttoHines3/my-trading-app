@@ -7,6 +7,9 @@
  *   - Each row is a single execution; multiple rows form one round-trip trade
  *   - Side: empty or "BuyToOpen"/"SellToOpen" for opens, "SellToClose"/"BuyToClose" for closes
  *   - Symbol format for options: "SPY 260107C693" → underlying YYMMDD[C/P]Strike
+ *
+ * Handles: trailing commas from spreadsheet exports, tab-delimited files,
+ * quoted values, BOM characters, mixed line endings.
  */
 
 interface Execution {
@@ -65,7 +68,6 @@ function parseDate(val: string): Date {
 
 /** Parse TradeStation options symbol like "SPY 260107C693" */
 function parseOptionSymbol(sym: string): { underlying: string; expiry: string; type: string; strike: string } | null {
-  // Format: "UNDERLYING YYMMDD[C/P]STRIKE"
   const match = sym.match(/^(\w+)\s+(\d{6})([CP])(\d+)$/);
   if (!match) return null;
   return {
@@ -74,11 +76,6 @@ function parseOptionSymbol(sym: string): { underlying: string; expiry: string; t
     type: match[3] === "C" ? "Call" : "Put",
     strike: match[4],
   };
-}
-
-function isOpenSide(side: string): boolean {
-  const s = side.toLowerCase().trim();
-  return s === "" || s === "buytoopen" || s === "selltoopen";
 }
 
 function isCloseSide(side: string): boolean {
@@ -90,35 +87,108 @@ function isShortOpen(side: string): boolean {
   return side.toLowerCase().trim() === "selltoopen";
 }
 
+/** Strip BOM and normalize line endings */
+function cleanText(text: string): string {
+  return text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+/** Detect delimiter: if splitting first data-looking line by tab gives more columns than comma, use tab */
+function detectDelimiter(text: string): string {
+  const lines = text.split("\n");
+  for (const line of lines) {
+    // Find a line that looks like data (starts with a date pattern MM/DD/YYYY)
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(line.trim())) {
+      const commaCount = line.split(",").length;
+      const tabCount = line.split("\t").length;
+      return tabCount > commaCount ? "\t" : ",";
+    }
+  }
+  // Fallback: check the header line
+  for (const line of lines) {
+    if (line.includes("Date") && line.includes("Symbol")) {
+      const commaCount = line.split(",").length;
+      const tabCount = line.split("\t").length;
+      return tabCount > commaCount ? "\t" : ",";
+    }
+  }
+  return ",";
+}
+
+/** Split a CSV/TSV line respecting quoted values */
+function splitLine(line: string, delimiter: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"' && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === delimiter) {
+      cells.push(current.trim());
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current.trim());
+  return cells;
+}
+
+/** Remove trailing empty strings from array */
+function stripTrailingEmpty(arr: string[]): string[] {
+  let end = arr.length;
+  while (end > 0 && arr[end - 1] === "") end--;
+  return arr.slice(0, end);
+}
+
 /**
- * Parse a TradeStation CSV and skip the metadata header.
- * Returns the column header row index and parsed rows.
+ * Parse the TradeStation CSV: skip metadata, find headers, parse data rows.
  */
-function parseCSVRows(text: string): { headers: string[]; rows: string[][]; accountInfo?: { account: string; dateRange: string; type: string } } {
-  const lines = text.split(/\r?\n/);
+function parseCSVRows(text: string): {
+  headers: string[];
+  rows: string[][];
+  accountInfo?: { account: string; dateRange: string; type: string };
+} {
+  const cleaned = cleanText(text);
+  const delimiter = detectDelimiter(cleaned);
+  const lines = cleaned.split("\n");
+
   let headerIdx = -1;
   let accountInfo: { account: string; dateRange: string; type: string } | undefined;
 
   // Extract account info from metadata and find column headers
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const raw = lines[i].trim();
+    // For metadata, get the first cell value (before any delimiter)
+    const firstCell = raw.split(delimiter)[0].trim();
 
-    // Extract metadata
-    if (line.startsWith("Account:")) {
+    if (firstCell.startsWith("Account:")) {
       accountInfo = accountInfo || { account: "", dateRange: "", type: "" };
-      accountInfo.account = line.replace("Account:", "").trim();
+      accountInfo.account = firstCell.replace("Account:", "").trim();
     }
-    if (line.startsWith("Dates:")) {
+    if (firstCell.startsWith("Dates:")) {
       accountInfo = accountInfo || { account: "", dateRange: "", type: "" };
-      accountInfo.dateRange = line.replace("Dates:", "").trim();
+      accountInfo.dateRange = firstCell.replace("Dates:", "").trim();
     }
-    if (line.startsWith("Type:")) {
+    if (firstCell.startsWith("Type:")) {
       accountInfo = accountInfo || { account: "", dateRange: "", type: "" };
-      accountInfo.type = line.replace("Type:", "").trim();
+      accountInfo.type = firstCell.replace("Type:", "").trim();
     }
 
-    // Detect column header row by looking for "Date" and "Symbol" columns
-    if (line.includes("Date") && line.includes("Symbol") && line.includes("Quantity")) {
+    // Detect column header row: split by delimiter and check for known column names
+    const cells = splitLine(raw, delimiter);
+    const cellValues = cells.map((c) => c.toLowerCase().trim());
+    if (cellValues.includes("date") && cellValues.includes("symbol") && cellValues.includes("quantity")) {
       headerIdx = i;
       break;
     }
@@ -128,8 +198,9 @@ function parseCSVRows(text: string): { headers: string[]; rows: string[][]; acco
     return { headers: [], rows: [], accountInfo };
   }
 
-  // Parse header
-  const headers = lines[headerIdx].split(",").map((h) => h.trim());
+  // Parse header — strip trailing empty columns (from spreadsheet export)
+  const rawHeaders = splitLine(lines[headerIdx], delimiter);
+  const headers = stripTrailingEmpty(rawHeaders);
 
   // Parse data rows
   const rows: string[][] = [];
@@ -137,9 +208,11 @@ function parseCSVRows(text: string): { headers: string[]; rows: string[][]; acco
     const line = lines[i].trim();
     if (!line || line.startsWith("#")) continue;
 
-    // Simple CSV parse (TradeStation doesn't quote fields with commas)
-    const cells = line.split(",").map((c) => c.trim());
-    if (cells.length >= headers.length - 1 && cells[0]) {
+    const cells = splitLine(line, delimiter);
+
+    // Only require that we have at least a date and symbol (first 2 columns)
+    // Don't require matching header length — trailing columns may be missing
+    if (cells.length >= 2 && cells[0]) {
       rows.push(cells);
     }
   }
@@ -155,14 +228,18 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
   const errors: string[] = [];
 
   if (headers.length === 0) {
-    return { trades: [], errors: ["Could not find column headers in the CSV. Expected TradeStation Historical Activity Report format."], accountInfo };
+    return {
+      trades: [],
+      errors: ["Could not find column headers in the CSV. Expected columns: Date, Symbol, CUSIP, Side, Quantity, Price, Principal, Commission, Other Fees, Net Amount, Order ID"],
+      accountInfo,
+    };
   }
 
-  // Map column indices
+  // Map column indices by normalized header name
   const colIdx: Record<string, number> = {};
   headers.forEach((h, i) => {
     const key = h.toLowerCase().replace(/\s+/g, "");
-    colIdx[key] = i;
+    if (key) colIdx[key] = i;
   });
 
   const dateCol = colIdx["date"] ?? -1;
@@ -177,7 +254,11 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
   const orderIdCol = colIdx["orderid"] ?? -1;
 
   if (dateCol === -1 || symbolCol === -1) {
-    return { trades: [], errors: ["Missing required columns: Date and Symbol"], accountInfo };
+    return {
+      trades: [],
+      errors: [`Missing required columns: Date and Symbol. Found headers: ${headers.filter(Boolean).join(", ")}`],
+      accountInfo,
+    };
   }
 
   // Parse all executions
@@ -186,26 +267,37 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
     const row = rows[i];
     const rowNum = i + 1;
 
-    const date = row[dateCol];
-    const symbol = row[symbolCol];
+    const date = row[dateCol] || "";
+    const symbol = row[symbolCol] || "";
     if (!date || !symbol) {
       errors.push(`Row ${rowNum}: missing date or symbol`);
       continue;
     }
 
+    // Safely access columns — row may be shorter than header count
+    const safeGet = (col: number): string => (col >= 0 && col < row.length) ? (row[col] || "") : "";
+
     executions.push({
       date,
       symbol,
-      cusip: row[colIdx["cusip"]] || "",
-      side: sideCol >= 0 ? (row[sideCol] || "") : "",
-      quantity: quantityCol >= 0 ? parseNumber(row[quantityCol]) : 0,
-      price: priceCol >= 0 ? parseNumber(row[priceCol]) : 0,
-      principal: principalCol >= 0 ? parseNumber(row[principalCol]) : 0,
-      commission: commissionCol >= 0 ? parseNumber(row[commissionCol]) : 0,
-      otherFees: otherFeesCol >= 0 ? parseNumber(row[otherFeesCol]) : 0,
-      netAmount: netAmountCol >= 0 ? parseNumber(row[netAmountCol]) : 0,
-      orderId: orderIdCol >= 0 ? (row[orderIdCol] || "") : "",
+      cusip: safeGet(colIdx["cusip"] ?? -1),
+      side: safeGet(sideCol),
+      quantity: quantityCol >= 0 ? parseNumber(safeGet(quantityCol)) : 0,
+      price: priceCol >= 0 ? parseNumber(safeGet(priceCol)) : 0,
+      principal: principalCol >= 0 ? parseNumber(safeGet(principalCol)) : 0,
+      commission: commissionCol >= 0 ? parseNumber(safeGet(commissionCol)) : 0,
+      otherFees: otherFeesCol >= 0 ? parseNumber(safeGet(otherFeesCol)) : 0,
+      netAmount: netAmountCol >= 0 ? parseNumber(safeGet(netAmountCol)) : 0,
+      orderId: safeGet(orderIdCol),
     });
+  }
+
+  if (executions.length === 0) {
+    return {
+      trades: [],
+      errors: errors.length > 0 ? errors : [`No data rows found after headers. Found ${rows.length} rows but none had valid date/symbol.`],
+      accountInfo,
+    };
   }
 
   // Group executions by symbol into open/close buckets
@@ -228,12 +320,10 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
   const trades: GroupedTrade[] = [];
 
   for (const [symbol, { opens, closes }] of symbolGroups) {
-    // Determine asset class and underlying from symbol
     const optionInfo = parseOptionSymbol(symbol);
     const underlying = optionInfo ? optionInfo.underlying : symbol;
     const assetClass = optionInfo ? "options" : "stocks";
 
-    // Determine side: if opens have no side or "BuyToOpen" → long; "SellToOpen" → short
     const isShort = opens.length > 0 && isShortOpen(opens[0].side);
     const side = isShort ? "short" : "long";
 
@@ -267,7 +357,6 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
 
     const quantity = Math.max(totalOpenQty, totalCloseQty);
 
-    // Only create trade if there are executions
     if (quantity > 0) {
       trades.push({
         symbol: underlying,
@@ -287,7 +376,6 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
     }
   }
 
-  // Sort by entry date
   trades.sort((a, b) => a.entryDate.getTime() - b.entryDate.getTime());
 
   return { trades, errors, accountInfo };
