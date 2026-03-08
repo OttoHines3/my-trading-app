@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, CheckCircle, Play, Share2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TradeStatsPanel } from "@/components/trades/trade-detail/trade-stats-panel";
-import { TradeChartPanel } from "@/components/trades/trade-detail/trade-chart-panel";
+import { AGChartsPanel } from "@/components/trades/trade-detail/ag-charts-panel";
 import type { Trade } from "@/types";
 
 const TABS = ["Stats", "Strategy", "Executions", "Attachments", "Notes", "Running P&L"] as const;
@@ -166,7 +166,7 @@ export default function TradeDetailPage({ params }: { params: Promise<{ id: stri
       {activeTab === "Stats" ? (
         <div className="flex gap-4 flex-1 min-h-0">
           <TradeStatsPanel trade={trade} />
-          <TradeChartPanel trade={trade} />
+          <AGChartsPanel trade={trade} />
         </div>
       ) : (
         <div className="flex-1 flex items-center justify-center rounded-xl border border-dashed border-white/10 min-h-[200px]">
