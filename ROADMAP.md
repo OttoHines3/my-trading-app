@@ -135,7 +135,11 @@
 - [ ] Stream real-time position updates (WebSocket)
 - [ ] Wire TradeStation open positions count into dashboard stat cards
 - [ ] Order placement UI
-- [ ] Trade history sync (import closed trades to Trade Journal)
+- [x] CSV trade import (`/api/trades/import`) — auto-detects common broker column names, bulk creates Trade records
+- [x] TradeStation CSV parser (`lib/parsers/tradestation.ts`) — groups executions into round-trip trades, handles options symbols, weighted avg prices
+- [x] CSV upload UI on portfolio page (drag-and-drop, file picker, broker selector) as alternative to TradeStation sync
+- [x] Multi-account system — Zustand store (`lib/stores/trading-accounts.ts`), account naming modal after import, account switcher dropdown with checkboxes (All accounts / individual), manage/rename/delete accounts
+- [ ] Trade history sync (import closed trades from TradeStation to Trade Journal)
 
 ---
 
