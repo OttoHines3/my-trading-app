@@ -4,7 +4,7 @@
  * Format:
  *   - Metadata header block (# --- lines, report info, account info)
  *   - Column headers: Date, Symbol, CUSIP, Side, Quantity, Price, Principal, Commission, Other Fees, Net Amount, Order ID
- *   - Each row is a single execution; multiple rows form one round-trip trade
+ *   - Each row is a single execution treated as its own individual trade
  *   - Side: empty or "BuyToOpen"/"SellToOpen" for opens, "SellToClose"/"BuyToClose" for closes
  *   - Symbol format for options: "SPY 260107C693" → underlying YYMMDD[C/P]Strike
  *
@@ -300,87 +300,44 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
     };
   }
 
-  // Group executions by symbol, then FIFO match opens to closes
-  // so each open+close pair becomes its own trade
-  const openQueues = new Map<string, Execution[]>();
-
-  for (const exec of executions) {
-    if (!isCloseSide(exec.side)) {
-      const queue = openQueues.get(exec.symbol) || [];
-      queue.push(exec);
-      openQueues.set(exec.symbol, queue);
-    }
-  }
-
-  // Build round-trip trades via FIFO matching
+  // Each CSV row = one individual trade. No pairing/grouping.
   const trades: GroupedTrade[] = [];
 
-  function buildTrade(rawSymbol: string, open: Execution | null, close: Execution | null): void {
-    const optionInfo = parseOptionSymbol(rawSymbol);
+  for (const exec of executions) {
+    const optionInfo = parseOptionSymbol(exec.symbol);
     const assetClass = optionInfo ? "options" : "stocks";
-    // Store full option symbol (e.g. "SPY 260306C6790") so the UI can parse strike/expiry
-    const symbol = rawSymbol;
-    const underlying = optionInfo ? optionInfo.underlying : rawSymbol;
 
-    const isShort = open ? isShortOpen(open.side) : false;
+    // Determine side from the Side column
+    const sideLower = exec.side.toLowerCase().trim();
+    const isShort = sideLower === "selltoopen" || sideLower === "selltoclose" || sideLower === "sell";
     const side = isShort ? "short" : "long";
 
-    const entryPrice = open?.price ?? 0;
-    const exitPrice = close?.price ?? 0;
-    const entryDate = open ? parseDate(open.date) : close ? parseDate(close.date) : new Date();
-    const exitDate = close ? parseDate(close.date) : entryDate;
-    const quantity = Math.abs(open?.quantity ?? close?.quantity ?? 0);
-
-    const allExecs = [open, close].filter(Boolean) as Execution[];
-    const totalNetAmount = allExecs.reduce((s, e) => s + e.netAmount, 0);
-    const totalCommission = allExecs.reduce((s, e) => s + e.commission, 0);
-    const totalFees = allExecs.reduce((s, e) => s + e.otherFees, 0);
+    const tradeDate = parseDate(exec.date);
+    const quantity = Math.abs(exec.quantity);
 
     const noteParts: string[] = [];
     if (optionInfo) {
-      noteParts.push(`${underlying} ${optionInfo.expiry.slice(0, 2)}/${optionInfo.expiry.slice(2, 4)}/${optionInfo.expiry.slice(4, 6)} ${optionInfo.type} $${optionInfo.strike}`);
+      noteParts.push(`${optionInfo.underlying} ${optionInfo.expiry.slice(0, 2)}/${optionInfo.expiry.slice(2, 4)}/${optionInfo.expiry.slice(4, 6)} ${optionInfo.type} $${optionInfo.strike}`);
     }
-    if (totalCommission) noteParts.push(`Commission: $${Math.abs(totalCommission).toFixed(2)}`);
-    if (totalFees) noteParts.push(`Fees: $${Math.abs(totalFees).toFixed(2)}`);
+    if (exec.commission) noteParts.push(`Commission: $${Math.abs(exec.commission).toFixed(2)}`);
+    if (exec.otherFees) noteParts.push(`Fees: $${Math.abs(exec.otherFees).toFixed(2)}`);
 
     if (quantity > 0) {
       trades.push({
-        symbol,
-        underlying,
+        symbol: exec.symbol,  // Store full symbol e.g. "SPY 260306C6790"
+        underlying: optionInfo ? optionInfo.underlying : exec.symbol,
         assetClass,
         side,
-        entryDate,
-        exitDate,
-        entryPrice,
-        exitPrice,
+        entryDate: tradeDate,
+        exitDate: tradeDate,
+        entryPrice: exec.price,
+        exitPrice: exec.price,
         quantity,
-        pnl: totalNetAmount,
-        commissions: Math.abs(totalCommission),
-        fees: Math.abs(totalFees),
+        pnl: exec.netAmount,
+        commissions: Math.abs(exec.commission),
+        fees: Math.abs(exec.otherFees),
         notes: noteParts.join(" | "),
       });
-    }
-  }
-
-  // Match closing executions to opens FIFO by symbol
-  for (const exec of executions) {
-    if (!isCloseSide(exec.side)) continue;
-
-    const queue = openQueues.get(exec.symbol);
-    if (queue && queue.length > 0) {
-      const openExec = queue.shift()!;
-      if (queue.length === 0) openQueues.delete(exec.symbol);
-      buildTrade(exec.symbol, openExec, exec);
-    } else {
-      // Closing with no matching open — standalone
-      buildTrade(exec.symbol, null, exec);
-    }
-  }
-
-  // Remaining unclosed opens
-  for (const [symbol, queue] of openQueues) {
-    for (const openExec of queue) {
-      buildTrade(symbol, openExec, null);
     }
   }
 

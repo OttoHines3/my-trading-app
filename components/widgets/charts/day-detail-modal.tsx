@@ -46,20 +46,28 @@ function formatTime(dateStr: string): string {
   });
 }
 
+function parseOptionSymbol(symbol: string): { ticker: string; expiry: string; strike: number; type: "CALL" | "PUT" } | null {
+  const match = symbol.trim().match(/^(\w+)\s+(\d{2})(\d{2})(\d{2})(C|P)(\d+)/);
+  if (!match) return null;
+  const [, ticker, yy, mm, dd, type, strikeRaw] = match;
+  return {
+    ticker,
+    expiry: `${mm}-${dd}-20${yy}`,
+    strike: Math.round(parseInt(strikeRaw, 10) / 10),
+    type: type === "C" ? "CALL" : "PUT",
+  };
+}
+
 function formatInstrument(trade: Trade): string {
-  // Parse TradeStation-style option symbols like "SPY 260107C693"
-  const match = trade.symbol.match(/^(\w+)\s+(\d{2})(\d{2})(\d{2})(C|P)(\d+)/);
-  if (match) {
-    const [, , yy, mm, dd, type, strikeRaw] = match;
-    const strike = Math.round(parseInt(strikeRaw, 10) / 10);
-    const expiry = `${mm}-${dd}-20${yy}`;
-    return `${expiry} ${strike} ${type === "C" ? "CALL" : "PUT"}`;
-  }
-  if (trade.assetClass === "options") {
-    const side = trade.side === "long" ? "CALL" : "PUT";
-    return `${trade.symbol} ${side}`;
-  }
+  const opt = parseOptionSymbol(trade.symbol);
+  if (opt) return `${opt.expiry} ${opt.strike} ${opt.type}`;
   return trade.symbol;
+}
+
+function getOptionSide(trade: Trade): string {
+  const opt = parseOptionSymbol(trade.symbol);
+  if (opt) return opt.type;
+  return trade.side === "long" ? "BUY" : "SELL";
 }
 
 function calcRoi(trade: Trade): string {
@@ -116,7 +124,9 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
     const grossLoss = Math.abs(losers.reduce((s, t) => s + t.pnl, 0));
     const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0;
 
-    return { totalTrades, grossPnl, winners: winners.length, losers: losers.length, winRate, volume, profitFactor };
+    const commissions = trades.reduce((s, t) => s + (t.commissions ?? 0), 0);
+
+    return { totalTrades, grossPnl, winners: winners.length, losers: losers.length, winRate, volume, profitFactor, commissions };
   }, [trades]);
 
   // Cumulative P&L chart data
@@ -246,7 +256,7 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                 </div>
 
                 {/* Stats grid */}
-                <div className="w-[60%] grid grid-cols-3 grid-rows-2 gap-4">
+                <div className="w-[60%] grid grid-cols-4 grid-rows-2 gap-4">
                   {[
                     { label: "Total Trades", value: String(stats.totalTrades), color: "text-white" },
                     {
@@ -260,11 +270,16 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                       color: "text-white",
                     },
                     {
-                      label: "Win Rate",
-                      value: `${stats.winRate.toFixed(1)}%`,
+                      label: "Commissions",
+                      value: formatPnl(stats.commissions),
                       color: "text-white",
                     },
-                    { label: "Volume", value: String(stats.volume), color: "text-white" },
+                    {
+                      label: "Win Rate",
+                      value: `${stats.winRate.toFixed(2)}%`,
+                      color: "text-white",
+                    },
+                    { label: "Volume", value: String(Math.round(stats.volume)), color: "text-white" },
                     {
                       label: "Profit Factor",
                       value: stats.profitFactor === Infinity ? "∞" : stats.profitFactor.toFixed(2),
@@ -306,7 +321,8 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                         </tr>
                       ) : (
                         trades.map((trade) => {
-                          const ticker = trade.symbol.split(/\s+/)[0];
+                          const opt = parseOptionSymbol(trade.symbol);
+                          const ticker = opt ? opt.ticker : trade.symbol.split(/\s+/)[0];
                           return (
                             <tr
                               key={trade.id}
@@ -316,7 +332,7 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                                 {formatTime(trade.entryDate)}
                               </td>
                               <td className="px-4 py-4 text-sm text-gray-300">
-                                {trade.side === "long" ? "CALL" : "PUT"}
+                                {getOptionSide(trade)}
                               </td>
                               <td className="px-4 py-4">
                                 <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white">
