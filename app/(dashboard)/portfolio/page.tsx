@@ -310,13 +310,7 @@ function PositionRow({ position }: { position: TSPosition }) {
 
 // ── CSV Upload Section ───────────────────────────────────────────────
 
-const BROKERS = [
-  { id: "tradestation", label: "TradeStation", desc: "Historical Activity Report CSV" },
-  { id: "generic", label: "Generic CSV", desc: "Any CSV with Symbol, Side, Prices, Dates" },
-] as const;
-
-function CSVUploadSection({ onImportSuccess }: { onImportSuccess: (count: number, broker: string) => void }) {
-  const [broker, setBroker] = useState<string>("tradestation");
+function CSVUploadSection({ onImportSuccess }: { onImportSuccess: (count: number) => void }) {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<{ message: string; errors?: string[] } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -337,13 +331,12 @@ function CSVUploadSection({ onImportSuccess }: { onImportSuccess: (count: number
     // Create account with temporary name, will be renamed in modal
     const accountId = addAccount({
       name: `Import ${new Date().toLocaleDateString()}`,
-      broker,
+      broker: "csv",
       tradeCount: 0,
     });
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("broker", broker);
     formData.append("accountId", accountId);
 
     try {
@@ -357,7 +350,7 @@ function CSVUploadSection({ onImportSuccess }: { onImportSuccess: (count: number
         setResult({ message: json.message, errors: json.errors });
         // Update trade count
         useTradingAccounts.getState().updateTradeCount(accountId, json.imported || 0);
-        onImportSuccess(json.imported || 0, broker);
+        onImportSuccess(json.imported || 0);
       }
     } catch {
       setUploadError("Failed to upload file");
@@ -385,28 +378,6 @@ function CSVUploadSection({ onImportSuccess }: { onImportSuccess: (count: number
       <div className="flex items-center gap-2 mb-4">
         <FileSpreadsheet className="h-5 w-5 text-primary" />
         <h2 className="text-base font-semibold text-foreground">Import Trades from CSV</h2>
-      </div>
-
-      {/* Broker selector */}
-      <div className="mb-5">
-        <p className="text-xs text-muted-foreground mb-2">Select your broker format:</p>
-        <div className="flex gap-2">
-          {BROKERS.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => { setBroker(b.id); setResult(null); setUploadError(null); }}
-              className={cn(
-                "rounded-lg px-3 py-2 text-left transition-colors border",
-                broker === b.id
-                  ? "border-primary bg-primary/10 text-foreground"
-                  : "border-white/5 bg-white/[0.02] text-muted-foreground hover:bg-white/5"
-              )}
-            >
-              <p className="text-sm font-medium">{b.label}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{b.desc}</p>
-            </button>
-          ))}
-        </div>
       </div>
 
       <label
@@ -469,19 +440,8 @@ function CSVUploadSection({ onImportSuccess }: { onImportSuccess: (count: number
       )}
 
       <div className="mt-6 text-xs text-muted-foreground">
-        {broker === "tradestation" ? (
-          <>
-            <p className="font-medium text-foreground/70 mb-1">How to export from TradeStation:</p>
-            <p>TradeStation Desktop &rarr; Reports &rarr; Historical Activity &rarr; Export as CSV</p>
-            <p className="mt-1">The parser groups executions by symbol to create round-trip trades with accurate P&L including fees.</p>
-          </>
-        ) : (
-          <>
-            <p className="font-medium text-foreground/70 mb-1">Expected columns:</p>
-            <p>Symbol, Side (long/short), Entry Price, Exit Price, Quantity, Entry Date, Exit Date, P&L, Asset Class, Notes, Tags</p>
-            <p className="mt-1">Only <span className="text-foreground/70">Symbol</span> is required. P&L is auto-calculated from prices if not provided.</p>
-          </>
-        )}
+        <p className="font-medium text-foreground/70 mb-1">Supported formats:</p>
+        <p>TradeStation Historical Activity Report (auto-detected), or any CSV with Symbol, Side, Entry/Exit Price, Quantity, Dates, P&L columns.</p>
       </div>
     </div>
   );
@@ -577,7 +537,7 @@ export default function PortfolioPage() {
     fetchPortfolio();
   };
 
-  const handleImportSuccess = (count: number, broker: string) => {
+  const handleImportSuccess = (count: number) => {
     // Show naming modal after successful import
     setShowNamingModal(true);
   };

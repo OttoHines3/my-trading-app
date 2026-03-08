@@ -242,7 +242,6 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const broker = (formData.get("broker") as string | null) || "generic";
     const accountId = (formData.get("accountId") as string | null) || "csv-import";
 
     if (!file) {
@@ -251,12 +250,14 @@ export async function POST(request: Request) {
 
     const text = await file.text();
 
-    switch (broker) {
-      case "tradestation":
-        return handleTradeStationImport(text, accountId);
-      default:
-        return handleGenericImport(text, accountId);
+    // Auto-detect TradeStation format by looking for their report header
+    const isTradeStation = text.includes("TradeStation Historical Activity Report")
+      || (text.includes("Order ID") && text.includes("Principal") && text.includes("Net Amount"));
+
+    if (isTradeStation) {
+      return handleTradeStationImport(text, accountId);
     }
+    return handleGenericImport(text, accountId);
   } catch (error) {
     console.error("CSV import error:", error);
     return NextResponse.json({ error: "Failed to process CSV file" }, { status: 500 });
