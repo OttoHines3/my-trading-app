@@ -138,7 +138,7 @@
 
 ## Phase 11 — Shared Filters & Trade View
 - [x] Global filter store (`lib/stores/trade-filters.ts`) — Zustand + persist, filters across all pages
-- [x] Filter UI components: FilterBar, FilterPanel (modal with categories), DateRangePicker
+- [x] Filter UI components: FilterBar (inline dropdown), FilterPanel (dropdown with categories), DateRangePicker (custom dark dual-calendar)
 - [x] Filter parsing utility (`lib/utils/parse-filters.ts`) — Prisma `where` + JS time filters
 - [x] API routes updated with filter/pagination/sorting support (`/api/trades`, `/api/widget-data`, `/api/dashboard-stats`)
 - [x] Widget fetch hook (`lib/hooks/use-widget-fetch.ts`)
