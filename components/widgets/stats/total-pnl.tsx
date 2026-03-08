@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
 
@@ -12,36 +11,35 @@ const defaultSparkData = [
 ];
 
 export default function TotalPnlWidget() {
-  const [pnl, setPnl] = useState(1240);
-  const [pnlPct, setPnlPct] = useState(4.8);
+  const [totalPnl, setTotalPnl] = useState(8450);
+  const [totalTrades, setTotalTrades] = useState(64);
   const [sparkData, setSparkData] = useState(defaultSparkData);
 
   useEffect(() => {
     fetch("/api/dashboard-stats")
       .then((r) => r.json())
       .then((data) => {
-        setPnl(data.todayPnl);
-        setPnlPct(data.todayPnlPct);
+        if (data.totalPnl !== undefined) setTotalPnl(data.totalPnl);
+        if (data.totalTrades !== undefined) setTotalTrades(data.totalTrades);
         if (data.pnlHistory) setSparkData(data.pnlHistory);
       })
       .catch(() => {});
   }, []);
 
-  const isPositive = pnl >= 0;
+  const isPositive = totalPnl >= 0;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">
       <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-        Today&apos;s P&amp;L
+        Total P&amp;L
       </p>
       <div className="flex items-end justify-between gap-2">
         <div>
           <p className={cn("text-2xl font-bold", isPositive ? "text-positive" : "text-destructive")}>
-            {isPositive ? "+" : "-"}${Math.abs(pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+            {isPositive ? "+" : "-"}${Math.abs(totalPnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </p>
-          <p className={cn("mt-0.5 flex items-center gap-1 text-xs", isPositive ? "text-positive" : "text-destructive")}>
-            <TrendingUp className="h-3 w-3" aria-hidden="true" />
-            {isPositive ? "+" : ""}{pnlPct.toFixed(1)}% vs yesterday
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {totalTrades} trade{totalTrades !== 1 ? "s" : ""} total
           </p>
         </div>
         <div className="h-12 w-28">

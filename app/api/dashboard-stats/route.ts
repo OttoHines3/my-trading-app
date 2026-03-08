@@ -13,7 +13,11 @@ export async function GET(request: Request) {
     const thirtyDaysAgo = subDays(now, 30);
 
     // TODO: filter by userId once auth is implemented
-    const [todayTrades, thirtyDayTrades] = await Promise.all([
+    const [allTrades, todayTrades, thirtyDayTrades] = await Promise.all([
+      prisma.trade.findMany({
+        where,
+        select: { pnl: true },
+      }),
       prisma.trade.findMany({
         where: { ...where, exitDate: { gte: todayStart } },
       }),
@@ -22,6 +26,7 @@ export async function GET(request: Request) {
       }),
     ]);
 
+    const totalPnl = allTrades.reduce((sum, t) => sum + t.pnl, 0);
     const todayPnl = todayTrades.reduce((sum, t) => sum + t.pnl, 0);
     const wins = thirtyDayTrades.filter((t) => t.pnl > 0).length;
     const losses = thirtyDayTrades.filter((t) => t.pnl <= 0).length;
@@ -46,8 +51,10 @@ export async function GET(request: Request) {
     const pnlHistory = Object.values(pnlByDay).map((v) => ({ v }));
 
     return NextResponse.json({
+      totalPnl,
       todayPnl,
       todayPnlPct: 0, // needs account balance to compute
+      totalTrades: allTrades.length,
       winRate,
       wins,
       losses,
@@ -61,8 +68,10 @@ export async function GET(request: Request) {
     // Return mock data when DB is unavailable
     console.error("Dashboard stats error:", error);
     return NextResponse.json({
+      totalPnl: 8450,
       todayPnl: 1240,
       todayPnlPct: 4.8,
+      totalTrades: 64,
       winRate: 67,
       wins: 43,
       losses: 21,
