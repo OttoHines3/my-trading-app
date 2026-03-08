@@ -177,7 +177,21 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
             isEditMode: false,
           };
         }
-        return persisted as DashboardLayoutState;
+        // v2 data — validate templates aren't corrupted
+        const state = persisted as Record<string, unknown>;
+        const templates = Array.isArray(state.templates) && state.templates.length > 0
+          ? state.templates as DashboardTemplate[]
+          : [createDefaultTemplate()];
+        const activeTemplateId =
+          typeof state.activeTemplateId === "string" && templates.some((t) => t.id === state.activeTemplateId)
+            ? (state.activeTemplateId as string)
+            : templates[0].id;
+        return {
+          ...state,
+          templates,
+          activeTemplateId,
+          isEditMode: false,
+        } as DashboardLayoutState;
       },
     }
   )

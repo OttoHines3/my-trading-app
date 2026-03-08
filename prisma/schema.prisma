@@ -20,10 +20,6 @@ model Trade {
   pnl          Float
   notes        String?
   tags         String[]
-  strategy     String?
-  commissions  Float    @default(0)
-  reviewed     Boolean  @default(false)
-  tradeRating  Int?
   screenshotUrl String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

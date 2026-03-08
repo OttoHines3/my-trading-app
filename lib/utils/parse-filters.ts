@@ -12,8 +12,9 @@ export function parseFiltersToWhere(searchParams: URLSearchParams): Prisma.Trade
   const symbols = searchParams.get("symbols")?.split(",").filter(Boolean);
   if (symbols?.length) where.symbol = { in: symbols };
 
-  const strategies = searchParams.get("strategies")?.split(",").filter(Boolean);
-  if (strategies?.length) where.strategy = { in: strategies };
+  // Strategy filter — uncomment after running migration to add `strategy` column
+  // const strategies = searchParams.get("strategies")?.split(",").filter(Boolean);
+  // if (strategies?.length) where.strategy = { in: strategies };
 
   const tags = searchParams.get("tags")?.split(",").filter(Boolean);
   if (tags?.length) where.tags = { hasSome: tags };

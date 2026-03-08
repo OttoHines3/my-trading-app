@@ -6,8 +6,12 @@ import { WidgetWrapper } from "./widget-wrapper";
 import { EmptySlot } from "./empty-slot";
 
 export function DashboardGrid() {
-  const { getActiveLayout, isEditMode, removeWidget } = useDashboardLayout();
-  const layout = getActiveLayout();
+  const layout = useDashboardLayout((s) => {
+    const template = s.templates.find((t) => t.id === s.activeTemplateId) ?? s.templates[0];
+    return template?.layout ?? [];
+  });
+  const isEditMode = useDashboardLayout((s) => s.isEditMode);
+  const removeWidget = useDashboardLayout((s) => s.removeWidget);
 
   return (
     <div

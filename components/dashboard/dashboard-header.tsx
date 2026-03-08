@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Settings, RotateCcw, Zap } from "lucide-react";
+import { Settings, RotateCcw } from "lucide-react";
 import { DisplayModeSwitcher } from "@/components/ui/display-mode-switcher";
 import { useDisplayMode } from "@/lib/stores/display-mode";
 import { useDashboardLayout } from "@/lib/stores/dashboard-layout";
@@ -16,15 +16,19 @@ interface DashboardStats {
 }
 
 export function DashboardHeader() {
-  const now = new Date();
-  const dateStr = now.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
+  const [dateStr, setDateStr] = useState("");
   const [stats, setStats] = useState<DashboardStats | null>(null);
+
+  useEffect(() => {
+    setDateStr(
+      new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    );
+  }, []);
 
   useEffect(() => {
     fetch("/api/dashboard-stats")
@@ -36,7 +40,9 @@ export function DashboardHeader() {
   const pnl = stats?.todayPnl ?? 0;
   const { mode } = useDisplayMode();
   const pnlDisplay = formatPnl({ pnl, mode });
-  const { isEditMode, toggleEditMode, resetToDefault } = useDashboardLayout();
+  const isEditMode = useDashboardLayout((s) => s.isEditMode);
+  const toggleEditMode = useDashboardLayout((s) => s.toggleEditMode);
+  const resetToDefault = useDashboardLayout((s) => s.resetToDefault);
 
   return (
     <div className="flex flex-col gap-3">

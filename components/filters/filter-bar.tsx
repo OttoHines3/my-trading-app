@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Filter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Filter, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTradeFilters } from "@/lib/stores/trade-filters";
 import { FilterPanel } from "./filter-panel";
@@ -9,26 +9,32 @@ import { DateRangePicker } from "./date-range-picker";
 
 export function FilterBar() {
   const [showPanel, setShowPanel] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const filters = useTradeFilters();
-  const hasActive = filters.hasActiveFilters();
 
-  // Count active filters (excluding date range which is shown separately)
-  const activeCount = [
-    filters.assetClasses.length,
-    filters.sides.length,
-    filters.symbols.length,
-    filters.statuses.length,
-    filters.tags.length,
-    filters.strategies.length,
-    filters.daysOfWeek.length,
-    filters.hoursOfDay.length,
-  ].filter((n) => n > 0).length;
+  useEffect(() => setHydrated(true), []);
+
+  const hasActive = hydrated && filters.hasActiveFilters();
+
+  const activeCount = hydrated
+    ? [
+        filters.assetClasses.length,
+        filters.sides.length,
+        filters.symbols.length,
+        filters.statuses.length,
+        filters.tags.length,
+        filters.strategies.length,
+        filters.daysOfWeek.length,
+        filters.hoursOfDay.length,
+      ].filter((n) => n > 0).length
+    : 0;
 
   return (
-    <>
-      <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3">
+      {/* Filters dropdown container */}
+      <div className="relative">
         <button
-          onClick={() => setShowPanel(true)}
+          onClick={() => setShowPanel(!showPanel)}
           className={cn(
             "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all",
             hasActive
@@ -43,23 +49,27 @@ export function FilterBar() {
               {activeCount}
             </span>
           )}
+          <ChevronDown className={cn("h-3 w-3 ml-0.5 transition-transform", showPanel && "rotate-180")} />
         </button>
-        <DateRangePicker
-          dateFrom={filters.dateFrom}
-          dateTo={filters.dateTo}
-          onDateFromChange={(val) => filters.setFilter("dateFrom", val)}
-          onDateToChange={(val) => filters.setFilter("dateTo", val)}
-        />
-        {hasActive && (
-          <button
-            onClick={() => filters.resetFilters()}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Clear all
-          </button>
-        )}
+        <FilterPanel isOpen={showPanel} onClose={() => setShowPanel(false)} />
       </div>
-      <FilterPanel isOpen={showPanel} onClose={() => setShowPanel(false)} />
-    </>
+
+      {/* Date range picker */}
+      <DateRangePicker
+        dateFrom={hydrated ? filters.dateFrom : null}
+        dateTo={hydrated ? filters.dateTo : null}
+        onDateFromChange={(val) => filters.setFilter("dateFrom", val)}
+        onDateToChange={(val) => filters.setFilter("dateTo", val)}
+      />
+
+      {hasActive && (
+        <button
+          onClick={() => filters.resetFilters()}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Clear all
+        </button>
+      )}
+    </div>
   );
 }

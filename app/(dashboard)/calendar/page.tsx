@@ -11,7 +11,9 @@ import {
   TrendingDown,
   ChevronLeft,
   ChevronRight,
+  Brain,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -316,6 +318,7 @@ export default function CalendarPage() {
 // ── Economic View ────────────────────────────────────────────────────────────
 
 function EconomicView({ groups }: { groups: Record<string, EconomicEvent[]> }) {
+  const router = useRouter();
   const days = Object.keys(groups);
 
   if (days.length === 0) {
@@ -343,19 +346,20 @@ function EconomicView({ groups }: { groups: Record<string, EconomicEvent[]> }) {
           </div>
 
           {/* Table header */}
-          <div className="grid grid-cols-[60px_1fr_70px_90px_90px] gap-2 border-b border-white/5 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="grid grid-cols-[60px_1fr_70px_90px_90px_70px] gap-2 border-b border-white/5 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
             <span>Time</span>
             <span>Event</span>
             <span>Impact</span>
             <span className="text-right">Forecast</span>
             <span className="text-right">Previous</span>
+            <span className="text-right">AI</span>
           </div>
 
           {/* Rows */}
           {groups[day].map((event, i) => (
             <div
               key={`${event.name}-${i}`}
-              className="grid grid-cols-[60px_1fr_70px_90px_90px] gap-2 items-center px-5 py-3 transition-colors hover:bg-white/[0.02]"
+              className="grid grid-cols-[60px_1fr_70px_90px_90px_70px] gap-2 items-center px-5 py-3 transition-colors hover:bg-white/[0.02]"
             >
               <span className="flex items-center gap-1.5 text-sm text-muted-foreground">
                 <Clock className="h-3 w-3" />
@@ -379,6 +383,26 @@ function EconomicView({ groups }: { groups: Record<string, EconomicEvent[]> }) {
               </span>
               <span className="text-right text-sm text-muted-foreground tabular-nums">
                 {event.previous}
+              </span>
+              <span className="flex justify-end">
+                <button
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      name: event.name,
+                      impact: event.impact,
+                      forecast: event.forecast,
+                      previous: event.previous,
+                      time: event.time,
+                      day,
+                    });
+                    router.push(`/calendar/analysis?${params.toString()}`);
+                  }}
+                  className="flex items-center gap-1 rounded-lg border border-primary/20 bg-primary/5 px-2 py-1 text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+                  title="AI Analysis"
+                >
+                  <Brain className="h-3 w-3" />
+                  Analyze
+                </button>
               </span>
             </div>
           ))}
