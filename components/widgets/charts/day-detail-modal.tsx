@@ -47,17 +47,27 @@ function formatTime(dateStr: string): string {
 }
 
 function formatInstrument(trade: Trade): string {
+  // Parse TradeStation-style option symbols like "SPY 260107C693"
+  const match = trade.symbol.match(/^(\w+)\s+(\d{2})(\d{2})(\d{2})(C|P)(\d+)/);
+  if (match) {
+    const [, , yy, mm, dd, type, strikeRaw] = match;
+    const strike = Math.round(parseInt(strikeRaw, 10) / 10);
+    const expiry = `${mm}-${dd}-20${yy}`;
+    return `${expiry} ${strike} ${type === "C" ? "CALL" : "PUT"}`;
+  }
   if (trade.assetClass === "options") {
-    const d = new Date(trade.exitDate);
-    const dateStr = d.toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-    });
     const side = trade.side === "long" ? "CALL" : "PUT";
-    return `${dateStr} ${trade.exitPrice} ${side}`;
+    return `${trade.symbol} ${side}`;
   }
   return trade.symbol;
+}
+
+function calcRoi(trade: Trade): string {
+  if (!trade.entryPrice || !trade.quantity) return "—";
+  const multiplier = trade.assetClass === "options" ? 100 : 1;
+  const roi = (trade.pnl / (trade.entryPrice * trade.quantity * multiplier)) * 100;
+  if (Math.abs(roi) > 999) return "—";
+  return `(${roi >= 0 ? "" : "-"}${Math.abs(roi).toFixed(2)}%)`;
 }
 
 export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModalProps) {
@@ -278,6 +288,7 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Open Time</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Side</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Ticker</th>
+                        <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Qty</th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Instrument</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Net P&L</th>
                         <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Net ROI</th>
@@ -289,16 +300,13 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                     <tbody>
                       {trades.length === 0 ? (
                         <tr>
-                          <td colSpan={9} className="px-4 py-8 text-center text-sm text-gray-500">
+                          <td colSpan={10} className="px-4 py-8 text-center text-sm text-gray-500">
                             No trades found for this day
                           </td>
                         </tr>
                       ) : (
                         trades.map((trade) => {
-                          const roi =
-                            trade.entryPrice > 0
-                              ? ((trade.pnl / (trade.entryPrice * trade.quantity)) * 100).toFixed(2)
-                              : "0.00";
+                          const ticker = trade.symbol.split(/\s+/)[0];
                           return (
                             <tr
                               key={trade.id}
@@ -312,8 +320,11 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                               </td>
                               <td className="px-4 py-4">
                                 <span className="rounded-full bg-white/10 px-2 py-1 text-xs font-bold text-white">
-                                  {trade.symbol}
+                                  {ticker}
                                 </span>
+                              </td>
+                              <td className="px-4 py-4 text-sm text-gray-300 text-center">
+                                {Math.round(trade.quantity)}
                               </td>
                               <td className="px-4 py-4 text-sm text-gray-300">
                                 {formatInstrument(trade)}
@@ -327,7 +338,7 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                                 {formatPnl(trade.pnl)}
                               </td>
                               <td className="px-4 py-4 text-sm text-gray-400 text-right">
-                                ({roi}%)
+                                {calcRoi(trade)}
                               </td>
                               <td className="px-4 py-4 text-sm text-gray-500 text-right">—</td>
                               <td className="px-4 py-4 text-sm text-gray-500">
