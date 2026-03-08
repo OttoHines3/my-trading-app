@@ -15,6 +15,8 @@ import {
   ChevronRight,
   TrendingUp,
   ListOrdered,
+  Bot,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +30,8 @@ const navItems = [
   { icon: Briefcase, label: "Portfolio", href: "/portfolio" },
   { icon: Star, label: "Watchlist", href: "/watchlist" },
   { icon: Brain, label: "Psychology", href: "/psychology" },
+  { icon: Bot, label: "AI Agent", href: "/agent" },
+  { icon: Lightbulb, label: "Insights", href: "/insights" },
 ];
 
 export function Sidebar() {

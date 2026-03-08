@@ -22,10 +22,63 @@ model Trade {
   notes        String?
   tags         String[]
   screenshotUrl String?
+  autoNote         String?  @db.Text
+  autoNoteAt       DateTime?
+  flaggedForReview Boolean  @default(false)
+  flagReason       String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([userId])
+}
+
+model TradeAttachment {
+  id        String   @id @default(cuid())
+  tradeId   String
+  fileName  String
+  fileType  String
+  fileSize  Int
+  url       String   @db.Text  // base64 data URL
+  createdAt DateTime @default(now())
+
+  @@index([tradeId])
+}
+
+model AgentMemory {
+  id         String   @id @default(cuid())
+  userId     String
+  agentType  String
+  memories   Json
+  rawSummary String   @db.Text
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, agentType])
+}
+
+model TradingInsight {
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  content       String   @db.Text
+  category      String
+  relatedTrades String[]
+  savedAt       DateTime @default(now())
+  agentType     String
+  thumbsUp      Int      @default(0)
+  thumbsDown    Int      @default(0)
+}
+
+model DailyBriefing {
+  id        String   @id @default(cuid())
+  userId    String
+  date      String
+  content   String   @db.Text
+  vixLevel  Float?
+  spyPrice  Float?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
 }
 
 model WatchlistItem {

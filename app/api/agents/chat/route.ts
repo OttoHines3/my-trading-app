@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AgentRole, AgentMessage } from "@/types/agents";
 import { createAgentConfig, executeAgent } from "@/lib/agents/executor";
+import { loadMemory, updateMemory } from "@/lib/agent-memory";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // Allow up to 60 seconds for agent execution
+export const maxDuration = 60;
 
 interface ChatRequest {
   role: AgentRole;
@@ -26,7 +27,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate role
     const validRoles: AgentRole[] = [
       "trade-analyzer",
       "performance-coach",
@@ -42,8 +42,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create agent config
+    const userId = "default";
+
+    // Load persistent memory and inject into system prompt
+    const memory = await loadMemory(userId, role);
     const config = createAgentConfig(role);
+    config.systemPrompt = `${config.systemPrompt}\n\n${memory}`;
 
     // If there's context, prepend it to the first user message
     let processedMessages = messages;
@@ -57,10 +61,7 @@ export async function POST(req: NextRequest) {
           if (context.symbol) {
             contextPrefix += `[Context: Focus on symbol ${context.symbol}]\n\n`;
           }
-          return {
-            ...msg,
-            content: contextPrefix + msg.content,
-          };
+          return { ...msg, content: contextPrefix + msg.content };
         }
         return msg;
       });
@@ -68,6 +69,17 @@ export async function POST(req: NextRequest) {
 
     // Execute agent
     const result = await executeAgent(config, processedMessages);
+
+    // Update memory in background (don't block response)
+    const allMessages = [
+      ...processedMessages,
+      result.message,
+    ];
+    updateMemory(
+      userId,
+      role,
+      allMessages.map((m) => ({ role: m.role, content: m.content }))
+    ).catch((err) => console.error("Memory update failed:", err));
 
     return NextResponse.json({
       success: true,

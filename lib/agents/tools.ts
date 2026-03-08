@@ -15,10 +15,14 @@ import {
   calcDailyPnl,
 } from "@/lib/utils/widget-calculations";
 import { calcWinRate, calcProfitFactor } from "@/lib/utils/calculations";
+import { toolDefinitions as aiToolDefinitions, executeToolCall as executeAiToolCall } from "@/lib/ai-tools";
 
 // ── Tool Definitions (JSON Schema for Claude) ──────────────────────────
 
 export const AGENT_TOOLS: ToolDefinition[] = [
+  // New AI tools from ai-tools.ts (cast to match ToolDefinition shape)
+  ...(aiToolDefinitions as unknown as ToolDefinition[]),
+  // Original agent tools
   {
     name: "get_trades",
     description:
@@ -284,7 +288,8 @@ export async function executeTool(
     case "compare_periods":
       return executeComparePeriods(input);
     default:
-      throw new Error(`Unknown tool: ${toolName}`);
+      // Try new AI tools (these need userId, use "default" for now)
+      return executeAiToolCall(toolName, input, "default");
   }
 }
 

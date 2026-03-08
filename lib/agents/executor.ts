@@ -96,8 +96,8 @@ export async function executeAgent(
 
   let iterations = 0;
   let currentMessages = [...anthropicMessages];
-  let allToolCalls: ToolCall[] = [];
-  let allToolResults: ToolResult[] = [];
+  const allToolCalls: ToolCall[] = [];
+  const allToolResults: ToolResult[] = [];
 
   while (iterations < maxToolIterations) {
     iterations++;
@@ -198,74 +198,156 @@ export async function executeAgent(
   };
 }
 
-// ── Streaming Execution ────────────────────────────────────────────────
+// ── Streaming Execution with Agentic Tool Loop ────────────────────────
 
 export async function* streamAgent(
   config: AgentConfig,
-  messages: AgentMessage[]
+  messages: AgentMessage[],
+  maxToolIterations = 10
 ): AsyncGenerator<{
   type: "text" | "tool_start" | "tool_end" | "done";
   content?: string;
+  name?: string;
   toolCall?: ToolCall;
   toolResult?: ToolResult;
+  message?: AgentMessage;
 }> {
-  const anthropicMessages = convertToAnthropicMessages(messages);
   const tools = convertTools(config.tools);
+  let currentMessages = convertToAnthropicMessages(messages);
+  const allToolCalls: ToolCall[] = [];
+  const allToolResults: ToolResult[] = [];
+  let iterations = 0;
 
-  const stream = await anthropic.messages.stream({
-    model: config.model || "claude-sonnet-4-20250514",
-    max_tokens: config.maxTokens || 4096,
-    system: config.systemPrompt,
-    messages: anthropicMessages,
-    tools,
-  });
+  while (iterations < maxToolIterations) {
+    iterations++;
 
-  let currentToolCall: Partial<ToolCall> | null = null;
+    // Collect the full response first using non-streaming for tool-use iterations,
+    // and streaming only for the final text response
+    const response = await anthropic.messages.create({
+      model: config.model || "claude-sonnet-4-20250514",
+      max_tokens: config.maxTokens || 4096,
+      system: config.systemPrompt,
+      messages: currentMessages,
+      tools,
+    });
 
-  for await (const event of stream) {
-    if (event.type === "content_block_delta") {
-      const delta = event.delta;
-      if ("text" in delta) {
-        yield { type: "text", content: delta.text };
-      } else if ("partial_json" in delta && currentToolCall) {
-        // Accumulate tool input JSON
-      }
-    } else if (event.type === "content_block_start") {
-      const block = event.content_block;
-      if (block.type === "tool_use") {
-        currentToolCall = {
+    // Extract content blocks
+    let textContent = "";
+    const toolCalls: ToolCall[] = [];
+
+    for (const block of response.content) {
+      if (block.type === "text") {
+        textContent += block.text;
+      } else if (block.type === "tool_use") {
+        toolCalls.push({
           id: block.id,
           name: block.name,
-          input: {},
-        };
-        yield { type: "tool_start", toolCall: currentToolCall as ToolCall };
+          input: block.input as Record<string, unknown>,
+        });
       }
-    } else if (event.type === "content_block_stop" && currentToolCall) {
-      // Execute the tool
-      const toolCall = currentToolCall as ToolCall;
+    }
+
+    // If no tool calls or end_turn, stream the final text and we're done
+    if (toolCalls.length === 0 || response.stop_reason === "end_turn") {
+      // Stream text word-by-word for typewriter effect
+      if (textContent) {
+        const words = textContent.split(" ");
+        for (const word of words) {
+          yield { type: "text", content: word + " " };
+        }
+      }
+
+      yield {
+        type: "done",
+        message: {
+          role: "assistant",
+          content: textContent,
+          timestamp: new Date().toISOString(),
+          toolCalls: allToolCalls.length > 0 ? allToolCalls : undefined,
+          toolResults: allToolResults.length > 0 ? allToolResults : undefined,
+        },
+      };
+      return;
+    }
+
+    // We have tool calls — yield them, execute, and loop
+    for (const call of toolCalls) {
+      yield {
+        type: "tool_start",
+        name: call.name,
+        toolCall: call,
+      };
+    }
+
+    // Execute all tool calls
+    const toolResults: ToolResult[] = [];
+    for (const call of toolCalls) {
       try {
-        const result = await executeTool(toolCall.name, toolCall.input);
+        const result = await executeTool(call.name, call.input);
+        const toolResult: ToolResult = {
+          toolCallId: call.id,
+          result,
+          isError: false,
+        };
+        toolResults.push(toolResult);
         yield {
           type: "tool_end",
-          toolCall,
-          toolResult: { toolCallId: toolCall.id, result, isError: false },
+          name: call.name,
+          toolCall: call,
+          toolResult,
         };
       } catch (error) {
+        const toolResult: ToolResult = {
+          toolCallId: call.id,
+          result: { error: error instanceof Error ? error.message : "Unknown error" },
+          isError: true,
+        };
+        toolResults.push(toolResult);
         yield {
           type: "tool_end",
-          toolCall,
-          toolResult: {
-            toolCallId: toolCall.id,
-            result: { error: error instanceof Error ? error.message : "Unknown error" },
-            isError: true,
-          },
+          name: call.name,
+          toolCall: call,
+          toolResult,
         };
       }
-      currentToolCall = null;
     }
+
+    // Track all tool interactions
+    allToolCalls.push(...toolCalls);
+    allToolResults.push(...toolResults);
+
+    // Feed tool results back to Claude for next iteration
+    currentMessages = [
+      ...currentMessages,
+      {
+        role: "assistant" as const,
+        content: response.content,
+      },
+      {
+        role: "user" as const,
+        content: toolResults.map((r) => ({
+          type: "tool_result" as const,
+          tool_use_id: r.toolCallId,
+          content: JSON.stringify(r.result),
+          is_error: r.isError,
+        })),
+      },
+    ];
+
+    // Loop continues — Claude will process tool results and either call more tools or respond
   }
 
-  yield { type: "done" };
+  // Max iterations reached
+  yield {
+    type: "done",
+    message: {
+      role: "assistant",
+      content: "I've reached the maximum number of analysis iterations. Here's what I found so far.",
+      timestamp: new Date().toISOString(),
+      toolCalls: allToolCalls,
+      toolResults: allToolResults,
+    },
+  };
 }
 
 // ── Quick Analysis Functions ───────────────────────────────────────────

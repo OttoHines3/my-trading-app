@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAgentChat, useSendMessage } from "@/lib/stores/agent-chat";
 import { AgentRole, AgentContext } from "@/types/agents";
-import { QUICK_PROMPTS } from "@/lib/agents/prompts";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   MessageSquare,
   Send,
@@ -17,6 +18,10 @@ import {
   BookOpen,
   Search,
   X,
+  ThumbsUp,
+  ThumbsDown,
+  Pin,
+  RefreshCw,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -64,14 +69,249 @@ const ROLE_CONFIG: Record<
   },
 };
 
-// ── Quick Actions ──────────────────────────────────────────────────────
+// ── Tool Name Labels ──────────────────────────────────────────────────
 
-const QUICK_ACTIONS = [
-  { key: "dailyReview", label: "Daily Review", role: "performance-coach" as AgentRole },
-  { key: "riskCheck", label: "Risk Check", role: "risk-monitor" as AgentRole },
-  { key: "bestSetups", label: "Best Setups", role: "trade-analyzer" as AgentRole },
-  { key: "improvementPlan", label: "Improvement Plan", role: "performance-coach" as AgentRole },
-];
+const TOOL_LABELS: Record<string, string> = {
+  get_trades_by_filter: "Querying your trades",
+  calculate_metrics: "Calculating metrics",
+  get_pattern_performance: "Analyzing patterns",
+  get_vix_correlation: "Checking VIX correlation",
+  get_time_of_day_analysis: "Analyzing time patterns",
+  get_live_market_data: "Fetching market data",
+  get_day_detail: "Loading day details",
+  get_recent_performance_trend: "Checking recent trend",
+  flag_trade_for_review: "Flagging trade",
+  save_insight: "Saving insight",
+  get_trades: "Querying trades",
+  get_trade_by_id: "Loading trade",
+  calculate_performance_metrics: "Calculating performance",
+  analyze_patterns: "Analyzing patterns",
+  get_risk_metrics: "Checking risk",
+  get_journal_entries: "Reading journal",
+  get_watchlist: "Checking watchlist",
+  compare_periods: "Comparing periods",
+};
+
+// ── Conversation Starters per Role ────────────────────────────────────
+
+const CONVERSATION_STARTERS: Record<AgentRole, string[]> = {
+  "trade-analyzer": [
+    "What are my most profitable trading patterns?",
+    "Show me my worst trades this month",
+    "What time of day am I most profitable?",
+    "Which setups should I stop trading?",
+  ],
+  "performance-coach": [
+    "Give me a full performance review",
+    "How has my trading improved recently?",
+    "What is my biggest weakness right now?",
+    "Create an improvement plan for me",
+  ],
+  "risk-monitor": [
+    "Am I overtrading?",
+    "What is my current max drawdown risk?",
+    "Show me my biggest losing streaks",
+    "Am I risking too much per trade?",
+  ],
+  "journal-assistant": [
+    "Summarize my trading week",
+    "What mistakes did I repeat this week?",
+    "How was my trading psychology this month?",
+    "What should I focus on tomorrow?",
+  ],
+  "market-researcher": [
+    "How does VIX affect my trades?",
+    "What market conditions suit my style?",
+    "Analyze my performance in high vs low volatility",
+    "When should I sit out based on market conditions?",
+  ],
+  general: [
+    "Give me a full performance review",
+    "What are my best setups?",
+    "How is my risk management?",
+    "Summarize my trading week",
+  ],
+};
+
+// ── Markdown Components ───────────────────────────────────────────────
+
+const markdownComponents = {
+  h1: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h1 className="text-lg font-semibold text-white mt-4 mb-2" {...props}>{children}</h1>
+  ),
+  h2: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h2 className="text-base font-semibold text-white mt-3 mb-1.5" {...props}>{children}</h2>
+  ),
+  h3: ({ children, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3 className="text-sm font-semibold text-white mt-2 mb-1" {...props}>{children}</h3>
+  ),
+  p: ({ children, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p className="text-sm text-gray-300 mb-2 leading-relaxed" {...props}>{children}</p>
+  ),
+  ul: ({ children, ...props }: React.HTMLAttributes<HTMLUListElement>) => (
+    <ul className="text-sm text-gray-300 list-disc list-inside mb-2 space-y-0.5" {...props}>{children}</ul>
+  ),
+  ol: ({ children, ...props }: React.HTMLAttributes<HTMLOListElement>) => (
+    <ol className="text-sm text-gray-300 list-decimal list-inside mb-2 space-y-0.5" {...props}>{children}</ol>
+  ),
+  li: ({ children, ...props }: React.HTMLAttributes<HTMLLIElement>) => (
+    <li className="text-sm text-gray-300" {...props}>{children}</li>
+  ),
+  strong: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <strong className="text-white font-semibold" {...props}>{children}</strong>
+  ),
+  em: ({ children, ...props }: React.HTMLAttributes<HTMLElement>) => (
+    <em className="text-gray-200 italic" {...props}>{children}</em>
+  ),
+  code: ({ children, className, ...props }: React.HTMLAttributes<HTMLElement>) => {
+    const isInline = !className;
+    if (isInline) {
+      return (
+        <code className="px-1.5 py-0.5 bg-gray-800 rounded text-xs text-blue-300 font-mono" {...props}>
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className={clsx("block bg-gray-800 rounded-lg p-3 text-xs font-mono text-gray-200 overflow-x-auto mb-2", className)} {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre: ({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) => (
+    <pre className="bg-gray-800 rounded-lg p-3 overflow-x-auto mb-2" {...props}>{children}</pre>
+  ),
+  table: ({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) => (
+    <div className="overflow-x-auto mb-2">
+      <table className="w-full text-sm border-collapse" {...props}>{children}</table>
+    </div>
+  ),
+  thead: ({ children, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) => (
+    <thead className="bg-gray-800" {...props}>{children}</thead>
+  ),
+  th: ({ children, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
+    <th className="px-3 py-1.5 text-left text-xs font-semibold text-white border border-gray-700" {...props}>{children}</th>
+  ),
+  td: ({ children, ...props }: React.HTMLAttributes<HTMLTableCellElement>) => (
+    <td className="px-3 py-1.5 text-xs text-gray-300 border border-gray-700" {...props}>{children}</td>
+  ),
+  tr: ({ children, ...props }: React.HTMLAttributes<HTMLTableRowElement>) => (
+    <tr className="even:bg-gray-800/50" {...props}>{children}</tr>
+  ),
+  blockquote: ({ children, ...props }: React.HTMLAttributes<HTMLQuoteElement>) => (
+    <blockquote className="border-l-2 border-gray-600 pl-3 my-2 text-gray-400 italic" {...props}>{children}</blockquote>
+  ),
+  hr: (props: React.HTMLAttributes<HTMLHRElement>) => (
+    <hr className="border-gray-700 my-3" {...props} />
+  ),
+  a: ({ children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+    <a className="text-blue-400 hover:text-blue-300 underline" target="_blank" rel="noopener noreferrer" {...props}>{children}</a>
+  ),
+};
+
+// ── Tool Pills Component ──────────────────────────────────────────────
+
+function ToolPills({ tools }: { tools: string[] }) {
+  if (tools.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1.5 mt-2">
+      {tools.map((tool) => (
+        <span
+          key={tool}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-700/50 text-xs text-gray-300 animate-pulse"
+        >
+          <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
+          {TOOL_LABELS[tool] || tool}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// ── Feedback Buttons Component ────────────────────────────────────────
+
+function FeedbackButtons({
+  messageContent,
+  agentType,
+  onRegenerate,
+}: {
+  messageContent: string;
+  agentType: string;
+  onRegenerate: () => void;
+}) {
+  const [feedbackGiven, setFeedbackGiven] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  const handleFeedback = async (type: "thumbsUp" | "thumbsDown") => {
+    setFeedbackGiven(type);
+    // Feedback on general messages is a no-op since there's no insightId yet
+    // This is a UX affordance — real feedback happens on saved insights
+  };
+
+  const handleSaveInsight = async () => {
+    setSaved(true);
+    try {
+      // Extract a short title from the first line or first 60 chars
+      const firstLine = messageContent.split("\n").find((l) => l.trim()) || messageContent;
+      const title = firstLine.replace(/^[#*\s]+/, "").slice(0, 80) || "AI Insight";
+
+      await fetch("/api/insights", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content: messageContent,
+          category: "recommendation",
+          agentType: agentType || "general",
+        }),
+      });
+    } catch {
+      setSaved(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <button
+        onClick={() => handleFeedback("thumbsUp")}
+        className={clsx(
+          "p-1 rounded hover:bg-gray-700 transition-colors",
+          feedbackGiven === "thumbsUp" ? "text-green-400" : "text-gray-500 hover:text-gray-300"
+        )}
+        title="Helpful"
+      >
+        <ThumbsUp className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={() => handleFeedback("thumbsDown")}
+        className={clsx(
+          "p-1 rounded hover:bg-gray-700 transition-colors",
+          feedbackGiven === "thumbsDown" ? "text-red-400" : "text-gray-500 hover:text-gray-300"
+        )}
+        title="Not helpful"
+      >
+        <ThumbsDown className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={handleSaveInsight}
+        className={clsx(
+          "p-1 rounded hover:bg-gray-700 transition-colors",
+          saved ? "text-yellow-400" : "text-gray-500 hover:text-gray-300"
+        )}
+        title="Save insight"
+      >
+        <Pin className="w-3.5 h-3.5" />
+      </button>
+      <button
+        onClick={onRegenerate}
+        className="p-1 rounded hover:bg-gray-700 transition-colors text-gray-500 hover:text-gray-300"
+        title="Regenerate"
+      >
+        <RefreshCw className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
 
 // ── Props ──────────────────────────────────────────────────────────────
 
@@ -98,7 +338,9 @@ export function AgentChat({
   const {
     currentConversation,
     isLoading,
+    isStreaming,
     error,
+    activeToolCalls,
     startConversation,
     clearCurrentConversation,
   } = useAgentChat();
@@ -107,7 +349,7 @@ export function AgentChat({
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [currentConversation?.messages]);
+  }, [currentConversation?.messages, activeToolCalls]);
 
   // Start conversation when role changes
   useEffect(() => {
@@ -124,13 +366,25 @@ export function AgentChat({
     setInput("");
   };
 
-  const handleQuickAction = (actionKey: string, role: AgentRole) => {
-    const prompt = QUICK_PROMPTS[actionKey as keyof typeof QUICK_PROMPTS];
-    if (typeof prompt === "string") {
-      setSelectedRole(role);
-      sendMessage(prompt, role, context);
-    }
+  const handleStarterClick = (prompt: string) => {
+    if (isLoading) return;
+    sendMessage(prompt, selectedRole, context);
   };
+
+  const handleRegenerate = useCallback(
+    (messageIdx: number) => {
+      if (isLoading || !currentConversation) return;
+      // Find the user message right before this assistant message
+      const messages = currentConversation.messages;
+      for (let i = messageIdx - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          sendMessage(messages[i].content, selectedRole, context);
+          break;
+        }
+      }
+    },
+    [isLoading, currentConversation, sendMessage, selectedRole, context]
+  );
 
   const handleNewChat = () => {
     clearCurrentConversation();
@@ -138,12 +392,13 @@ export function AgentChat({
   };
 
   const roleConfig = ROLE_CONFIG[selectedRole];
+  const starters = CONVERSATION_STARTERS[selectedRole];
 
   return (
     <div
       className={clsx(
         "flex flex-col bg-gray-900 border border-gray-800 rounded-lg overflow-hidden",
-        compact ? "h-[400px]" : "h-[600px]",
+        compact ? "h-[400px]" : "",
         className
       )}
     >
@@ -214,7 +469,7 @@ export function AgentChat({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* Welcome message / Quick Actions */}
+        {/* Welcome message / Conversation Starters */}
         {(!currentConversation?.messages.length || currentConversation.messages.length === 0) && (
           <div className="space-y-4">
             <div className="text-center py-8">
@@ -229,20 +484,20 @@ export function AgentChat({
               </p>
             </div>
 
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-2">
-              {QUICK_ACTIONS.map((action) => (
+            {/* Conversation Starters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {starters.map((starter) => (
                 <button
-                  key={action.key}
-                  onClick={() => handleQuickAction(action.key, action.role)}
+                  key={starter}
+                  onClick={() => handleStarterClick(starter)}
                   className={clsx(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg",
+                    "flex items-start gap-2 px-3 py-2.5 rounded-lg text-left",
                     "bg-gray-800 hover:bg-gray-700 transition-colors",
                     "text-sm text-gray-300 hover:text-white"
                   )}
                 >
-                  <Sparkles className="w-4 h-4 text-yellow-400" />
-                  {action.label}
+                  <Sparkles className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <span>{starter}</span>
                 </button>
               ))}
             </div>
@@ -254,56 +509,108 @@ export function AgentChat({
           <div
             key={idx}
             className={clsx(
-              "flex gap-3",
+              "flex gap-3 group",
               message.role === "user" ? "justify-end" : "justify-start"
             )}
           >
             {message.role === "assistant" && (
-              <div className={clsx("flex-shrink-0 p-2 rounded-full bg-gray-800", roleConfig.color)}>
+              <div className={clsx("flex-shrink-0 p-2 rounded-full bg-gray-800 h-fit", roleConfig.color)}>
                 <Bot className="w-4 h-4" />
               </div>
             )}
 
-            <div
-              className={clsx(
-                "max-w-[80%] rounded-lg px-4 py-2",
-                message.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-800 text-gray-100"
-              )}
-            >
-              <div className="whitespace-pre-wrap text-sm">{message.content}</div>
-
-              {/* Tool calls indicator */}
-              {message.toolCalls && message.toolCalls.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-gray-700">
-                  <div className="text-xs text-gray-400">
-                    Used {message.toolCalls.length} tool(s):{" "}
-                    {message.toolCalls.map((tc) => tc.name).join(", ")}
+            <div className="max-w-[80%]">
+              <div
+                className={clsx(
+                  "rounded-lg px-4 py-2",
+                  message.role === "user"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-800 text-gray-100"
+                )}
+              >
+                {message.role === "user" ? (
+                  <div className="whitespace-pre-wrap text-sm">{message.content}</div>
+                ) : (
+                  <div className="text-sm prose-invert max-w-none">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={markdownComponents}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                   </div>
-                </div>
+                )}
+
+                {/* Tool calls indicator */}
+                {message.toolCalls && message.toolCalls.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-700">
+                    <div className="text-xs text-gray-400">
+                      Used {message.toolCalls.length} tool(s):{" "}
+                      {message.toolCalls
+                        .map((tc) => TOOL_LABELS[tc.name] || tc.name)
+                        .join(", ")}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Feedback buttons for assistant messages */}
+              {message.role === "assistant" && message.content && (
+                <FeedbackButtons
+                  messageContent={message.content}
+                  agentType={selectedRole}
+                  onRegenerate={() => handleRegenerate(idx)}
+                />
               )}
             </div>
 
             {message.role === "user" && (
-              <div className="flex-shrink-0 p-2 rounded-full bg-blue-600">
+              <div className="flex-shrink-0 p-2 rounded-full bg-blue-600 h-fit">
                 <User className="w-4 h-4 text-white" />
               </div>
             )}
           </div>
         ))}
 
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="flex gap-3">
-            <div className={clsx("flex-shrink-0 p-2 rounded-full bg-gray-800", roleConfig.color)}>
-              <Bot className="w-4 h-4" />
-            </div>
-            <div className="bg-gray-800 rounded-lg px-4 py-2">
-              <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
-            </div>
-          </div>
-        )}
+        {/* Loading indicator with tool pills */}
+        {(isLoading || isStreaming) && (() => {
+          const msgs = currentConversation?.messages ?? [];
+          const lastMsg = msgs[msgs.length - 1];
+          const hasStreamedContent = lastMsg?.role === "assistant" && lastMsg.content;
+
+          if (hasStreamedContent && activeToolCalls.length > 0) {
+            // Show tool pills inline when text is already streaming
+            return (
+              <div className="flex gap-3 pl-11">
+                <div className="bg-gray-800/50 rounded-lg px-4 py-2">
+                  <ToolPills tools={activeToolCalls} />
+                </div>
+              </div>
+            );
+          }
+
+          if (!hasStreamedContent) {
+            // Show full loading indicator before any text arrives
+            return (
+              <div className="flex gap-3">
+                <div className={clsx("shrink-0 p-2 rounded-full bg-gray-800 h-fit", roleConfig.color)}>
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div className="bg-gray-800 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
+                    <span className="text-sm text-gray-400">
+                      {activeToolCalls.length > 0 ? "Working..." : "Thinking..."}
+                    </span>
+                  </div>
+                  <ToolPills tools={activeToolCalls} />
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
 
         {/* Error message */}
         {error && (

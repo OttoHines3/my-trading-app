@@ -166,6 +166,8 @@
 - [x] DayDetailModal rows clickable → navigate to `/trades/[id]`
 - [x] Dashboard templates (create, rename, duplicate, delete, switch) with v1→v2 store migration
 - [x] Trade model extended: `strategy`, `commissions`, `reviewed`, `tradeRating` fields
+- [x] Post-trade auto-analysis (`lib/auto-analysis.ts`) — Claude-powered trade review comparing against user history, saved as `autoNote`
+- [x] Auto-analysis API route (`/api/trades/[id]/auto-analysis`) — POST with `?regenerate=true` support
 
 ---
 
@@ -178,3 +180,23 @@
 - [ ] Toast notifications for CRUD actions
 - [ ] Confirmation dialogs for destructive actions (delete trade, etc.)
 - [x] Dark mode — full v0 command center theme applied
+
+---
+
+## Phase 13 — AI Agent System (Agentic Upgrade)
+- [x] 10 new Claude tool definitions (`lib/ai-tools.ts`) — dynamic trade queries, metrics, pattern analysis, live market data, insights, flagging
+- [x] Agentic tool use loop — Claude calls tools dynamically, parallel execution, SSE streaming
+- [x] Persistent agent memory (`lib/agent-memory.ts`) — per-agent memory with Claude-powered extraction, loaded into system prompt
+- [x] Daily morning briefing (`lib/daily-briefing.ts`) — AI-generated pre-market briefing with VIX/SPY data, cached per day
+- [x] Morning briefing dashboard card (`components/dashboard/morning-briefing.tsx`) — collapsible, dismissible, regeneratable
+- [x] Post-trade auto-analysis (`lib/auto-analysis.ts`) — compares new trade against historical performance
+- [x] Auto-note UI on trade detail page — generate/regenerate analysis per trade
+- [x] Upgraded chat UI — markdown rendering (react-markdown + remark-gfm), tool call visualization with animated pills, feedback buttons (thumbs up/down, save insight, regenerate)
+- [x] Per-role conversation starters (4 starters x 6 agent types)
+- [x] Streaming with tool tracking — real-time tool call indicators during agent processing
+- [x] Saved Insights page (`/insights`) — filterable card grid, category tabs, feedback counters, delete
+- [x] Insights API routes (`/api/insights`, `/api/insights/feedback`) — CRUD + feedback
+- [x] Daily briefing API route (`/api/daily-briefing`) — caching + regeneration
+- [x] Updated system prompts for all 6 agent types — more directive, tool-use focused
+- [x] Schema: AgentMemory, TradingInsight, DailyBriefing models + Trade auto-note/flag fields
+- [x] Memory integrated into both chat and stream API routes

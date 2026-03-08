@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { AgentRole, AgentMessage } from "@/types/agents";
 import { createAgentConfig, streamAgent } from "@/lib/agents/executor";
+import { loadMemory, updateMemory } from "@/lib/agent-memory";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,8 +27,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create agent config
+    const userId = "default";
+
+    // Load persistent memory and inject into system prompt
+    const memory = await loadMemory(userId, role);
     const config = createAgentConfig(role);
+    config.systemPrompt = `${config.systemPrompt}\n\n${memory}`;
 
     // Process context
     let processedMessages = messages;
@@ -49,15 +54,32 @@ export async function POST(req: NextRequest) {
 
     // Create readable stream
     const encoder = new TextEncoder();
+    let fullAssistantContent = "";
+
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const event of streamAgent(config, processedMessages)) {
             const data = JSON.stringify(event) + "\n";
             controller.enqueue(encoder.encode(`data: ${data}\n`));
+
+            if (event.type === "text" && event.content) {
+              fullAssistantContent += event.content;
+            }
           }
           controller.enqueue(encoder.encode("data: [DONE]\n\n"));
           controller.close();
+
+          // Update memory in background after stream completes
+          if (fullAssistantContent) {
+            const allMessages = [
+              ...processedMessages.map((m) => ({ role: m.role, content: m.content })),
+              { role: "assistant" as const, content: fullAssistantContent },
+            ];
+            updateMemory(userId, role, allMessages).catch((err) =>
+              console.error("Memory update failed:", err)
+            );
+          }
         } catch (error) {
           const errorData = JSON.stringify({
             type: "error",

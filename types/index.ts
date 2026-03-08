@@ -20,6 +20,10 @@ export interface Trade {
   reviewed?: boolean;
   tradeRating?: number;
   screenshotUrl?: string;
+  autoNote?: string | null;
+  autoNoteAt?: string | null;
+  flaggedForReview?: boolean;
+  flagReason?: string | null;
   createdAt: string;
 }
 

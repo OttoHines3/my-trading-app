@@ -14,6 +14,9 @@ interface AgentChatState {
   isStreaming: boolean;
   error: string | null;
 
+  // Tool call tracking
+  activeToolCalls: string[];
+
   // Actions
   startConversation: (role: AgentRole, context?: AgentContext) => void;
   addMessage: (message: AgentMessage) => void;
@@ -24,6 +27,9 @@ interface AgentChatState {
   loadConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
   updateStreamingMessage: (content: string) => void;
+  setActiveToolCalls: (tools: string[]) => void;
+  addActiveToolCall: (tool: string) => void;
+  removeActiveToolCall: (tool: string) => void;
 }
 
 export const useAgentChat = create<AgentChatState>()(
@@ -34,6 +40,7 @@ export const useAgentChat = create<AgentChatState>()(
       isLoading: false,
       isStreaming: false,
       error: null,
+      activeToolCalls: [],
 
       startConversation: (role: AgentRole, context?: AgentContext) => {
         const newConversation: AgentConversation = {
@@ -137,6 +144,20 @@ export const useAgentChat = create<AgentChatState>()(
           });
         }
       },
+
+      setActiveToolCalls: (tools: string[]) => set({ activeToolCalls: tools }),
+
+      addActiveToolCall: (tool: string) => {
+        const { activeToolCalls } = get();
+        if (!activeToolCalls.includes(tool)) {
+          set({ activeToolCalls: [...activeToolCalls, tool] });
+        }
+      },
+
+      removeActiveToolCall: (tool: string) => {
+        const { activeToolCalls } = get();
+        set({ activeToolCalls: activeToolCalls.filter((t) => t !== tool) });
+      },
     }),
     {
       name: "agent-chat-storage",
@@ -147,15 +168,20 @@ export const useAgentChat = create<AgentChatState>()(
   )
 );
 
-// ── Hook for sending messages ──────────────────────────────────────────
+// ── Hook for sending messages (streaming) ──────────────────────────────
 
 export function useSendMessage() {
   const {
     currentConversation,
     addMessage,
     setLoading,
+    setStreaming,
     setError,
     startConversation,
+    updateStreamingMessage,
+    addActiveToolCall,
+    removeActiveToolCall,
+    setActiveToolCalls,
   } = useAgentChat();
 
   const sendMessage = async (
@@ -176,70 +202,9 @@ export function useSendMessage() {
 
     addMessage(userMessage);
     setLoading(true);
-    setError(null);
-
-    try {
-      const { currentConversation: conv } = useAgentChat.getState();
-      if (!conv) throw new Error("No active conversation");
-
-      const response = await fetch("/api/agents/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: conv.agentRole,
-          messages: conv.messages,
-          context: conv.context,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to get response");
-      }
-
-      const data = await response.json();
-      addMessage(data.message);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return sendMessage;
-}
-
-// ── Hook for streaming messages ────────────────────────────────────────
-
-export function useStreamMessage() {
-  const {
-    currentConversation,
-    addMessage,
-    setStreaming,
-    setError,
-    startConversation,
-    updateStreamingMessage,
-  } = useAgentChat();
-
-  const streamMessage = async (
-    content: string,
-    role: AgentRole = "general",
-    context?: AgentContext
-  ) => {
-    // Start conversation if needed
-    if (!currentConversation) {
-      startConversation(role, context);
-    }
-
-    const userMessage: AgentMessage = {
-      role: "user",
-      content,
-      timestamp: new Date().toISOString(),
-    };
-
-    addMessage(userMessage);
     setStreaming(true);
     setError(null);
+    setActiveToolCalls([]);
 
     try {
       const { currentConversation: conv } = useAgentChat.getState();
@@ -264,31 +229,86 @@ export function useStreamMessage() {
       if (!reader) throw new Error("No response body");
 
       const decoder = new TextDecoder();
-      let assistantContent = "";
-
-      // Create initial assistant message
-      addMessage({
-        role: "assistant",
-        content: "",
-        timestamp: new Date().toISOString(),
-      });
+      let createdAssistantMessage = false;
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n").filter((line) => line.startsWith("data: "));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        // Keep the last partial line in the buffer
+        buffer = lines.pop() || "";
 
         for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
           const data = line.replace("data: ", "").trim();
           if (data === "[DONE]") continue;
 
           try {
             const event = JSON.parse(data);
-            if (event.type === "text" && event.content) {
-              assistantContent += event.content;
-              updateStreamingMessage(event.content);
+
+            switch (event.type) {
+              case "text":
+                if (event.content) {
+                  if (!createdAssistantMessage) {
+                    // Create initial empty assistant message
+                    addMessage({
+                      role: "assistant",
+                      content: "",
+                      timestamp: new Date().toISOString(),
+                    });
+                    createdAssistantMessage = true;
+                  }
+                  updateStreamingMessage(event.content);
+                }
+                break;
+
+              case "tool_start":
+                if (event.name || event.toolCall?.name) {
+                  addActiveToolCall(event.name || event.toolCall.name);
+                }
+                break;
+
+              case "tool_end":
+                if (event.name || event.toolCall?.name) {
+                  removeActiveToolCall(event.name || event.toolCall.name);
+                }
+                break;
+
+              case "done":
+                setActiveToolCalls([]);
+                // If the done event includes a full message, update it
+                if (event.message) {
+                  const { currentConversation: current } = useAgentChat.getState();
+                  if (current) {
+                    const messages = current.messages;
+                    const lastMsg = messages[messages.length - 1];
+                    if (lastMsg && lastMsg.role === "assistant") {
+                      const updatedMessages = [
+                        ...messages.slice(0, -1),
+                        {
+                          ...lastMsg,
+                          content: event.message.content || lastMsg.content,
+                          toolCalls: event.message.toolCalls,
+                          toolResults: event.message.toolResults,
+                        },
+                      ];
+                      useAgentChat.setState({
+                        currentConversation: {
+                          ...current,
+                          messages: updatedMessages,
+                        },
+                      });
+                    }
+                  }
+                }
+                break;
+
+              case "error":
+                setError(event.error || "Unknown streaming error");
+                break;
             }
           } catch {
             // Ignore parse errors for incomplete JSON
@@ -298,9 +318,11 @@ export function useStreamMessage() {
     } catch (error) {
       setError(error instanceof Error ? error.message : "Unknown error");
     } finally {
+      setLoading(false);
       setStreaming(false);
+      setActiveToolCalls([]);
     }
   };
 
-  return streamMessage;
+  return sendMessage;
 }

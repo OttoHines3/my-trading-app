@@ -6,7 +6,10 @@ import { QUICK_PROMPTS } from "@/lib/agents/prompts";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-type QuickPromptKey = keyof typeof QUICK_PROMPTS;
+// Only use the string/function prompts as valid quick action keys (exclude the starter arrays)
+type QuickPromptKey = {
+  [K in keyof typeof QUICK_PROMPTS]: (typeof QUICK_PROMPTS)[K] extends string | ((...args: string[]) => string) ? K : never;
+}[keyof typeof QUICK_PROMPTS];
 
 interface QuickRequest {
   action: QuickPromptKey | "custom";
