@@ -11,6 +11,7 @@ import {
   calcBestDay,
   calcWorstDay,
   calcDayWinRate,
+  calcDayCounts,
   calcPnlByWeekday,
   calcPnlByHour,
   calcPnlByAssetClass,
@@ -59,6 +60,7 @@ export async function GET(request: NextRequest) {
         winRate: Math.round(winRate),
         profitFactor: profitFactor === Infinity ? 999 : Number(profitFactor.toFixed(2)),
         dayWinRate: Math.round(calcDayWinRate(tradeData)),
+        dayCounts: calcDayCounts(tradeData),
         expectancy: Number(calcExpectancy(tradeData).toFixed(2)),
         currentStreak: calcCurrentStreak(tradeData),
         largestWin: (() => {
@@ -121,6 +123,7 @@ export async function GET(request: NextRequest) {
         winRate: 67,
         profitFactor: 2.4,
         dayWinRate: 72,
+        dayCounts: { greenDays: 18, breakEvenDays: 1, redDays: 6 },
         expectancy: 45.6,
         currentStreak: { type: "win", count: 3 },
         largestWin: { pnl: 890, symbol: "TSLA" },

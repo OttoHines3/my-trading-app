@@ -25,9 +25,10 @@ export async function GET(request: Request) {
     const totalPnl = allTrades.reduce((sum, t) => sum + t.pnl, 0);
     const todayPnl = todayTrades.reduce((sum, t) => sum + t.pnl, 0);
     const wins = allTrades.filter((t) => t.pnl > 0).length;
-    const losses = allTrades.filter((t) => t.pnl <= 0).length;
+    const breakevens = allTrades.filter((t) => t.pnl === 0).length;
+    const losses = allTrades.filter((t) => t.pnl < 0).length;
     const winRate = allTrades.length > 0
-      ? Math.round((wins / allTrades.length) * 100)
+      ? parseFloat(((wins / allTrades.length) * 100).toFixed(2))
       : 0;
 
     // Build P&L sparkline from filtered trades (already sorted by exitDate)
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
       totalTrades: allTrades.length,
       winRate,
       wins,
+      breakevens,
       losses,
       tradesToday: todayTrades.length,
       tradeWinsToday: todayTrades.filter((t) => t.pnl > 0).length,
@@ -66,7 +68,8 @@ export async function GET(request: Request) {
       totalTrades: 64,
       winRate: 67,
       wins: 43,
-      losses: 21,
+      breakevens: 2,
+      losses: 19,
       tradesToday: 4,
       tradeWinsToday: 3,
       tradeLossesToday: 1,

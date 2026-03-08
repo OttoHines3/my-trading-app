@@ -106,6 +106,19 @@ export function calcDayWinRate(trades: TradeInput[]): number {
   return (greenDays / daily.size) * 100;
 }
 
+export function calcDayCounts(trades: TradeInput[]): { greenDays: number; breakEvenDays: number; redDays: number } {
+  const daily = groupByDate(trades);
+  let greenDays = 0;
+  let breakEvenDays = 0;
+  let redDays = 0;
+  for (const pnl of daily.values()) {
+    if (pnl > 0) greenDays++;
+    else if (pnl === 0) breakEvenDays++;
+    else redDays++;
+  }
+  return { greenDays, breakEvenDays, redDays };
+}
+
 export function calcPnlByWeekday(trades: TradeInput[]): { day: string; pnl: number }[] {
   const map = new Map<number, number>();
   for (const t of trades) {

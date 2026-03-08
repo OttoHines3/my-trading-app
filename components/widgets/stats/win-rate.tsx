@@ -1,54 +1,112 @@
 "use client";
 
-import { useTradeFilters } from "@/lib/stores/trade-filters";
 import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
-
-const RADIUS = 24;
-const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-
-function getDateLabel(dateFrom: string | null, dateTo: string | null): string {
-  if (!dateFrom && !dateTo) return "All time";
-  const fmt = (d: string) => {
-    const date = new Date(d + "T12:00:00");
-    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  };
-  if (dateFrom && dateTo) return `${fmt(dateFrom)} – ${fmt(dateTo)}`;
-  if (dateFrom) return `From ${fmt(dateFrom)}`;
-  return `Until ${fmt(dateTo!)}`;
-}
 
 interface DashboardStats {
   winRate?: number;
   wins?: number;
+  breakevens?: number;
   losses?: number;
+}
+
+const R = 50;
+const CX = 60;
+const CY = 55;
+const STROKE = 8;
+const FULL_CIRC = 2 * Math.PI * R;
+const HALF_CIRC = Math.PI * R;
+const GAP = 5;
+
+interface Segment {
+  count: number;
+  color: string;
+  length: number;
+  offset: number;
+}
+
+function buildGauge(winners: number, breakevens: number, losers: number): Segment[] {
+  const total = winners + breakevens + losers;
+  if (total === 0) return [];
+
+  const raw = [
+    { count: winners, color: "#22c55e" },
+    { count: breakevens, color: "#3b82f6" },
+    { count: losers, color: "#ef4444" },
+  ].filter((s) => s.count > 0);
+
+  const numGaps = Math.max(0, raw.length - 1);
+  const usableArc = HALF_CIRC - numGaps * GAP;
+
+  let offset = 0;
+  return raw.map((seg, i) => {
+    const length = (seg.count / total) * usableArc;
+    const result = { ...seg, length, offset };
+    offset += length + (i < raw.length - 1 ? GAP : 0);
+    return result;
+  });
 }
 
 export default function WinRateWidget() {
   const { data } = useWidgetFetch<DashboardStats>("/api/dashboard-stats", {});
   const winRate = data.winRate ?? 67;
-  const wins = data.wins ?? 43;
-  const losses = data.losses ?? 21;
-  const dateFrom = useTradeFilters((s) => s.dateFrom);
-  const dateTo = useTradeFilters((s) => s.dateTo);
+  const winners = data.wins ?? 43;
+  const breakevens = data.breakevens ?? 2;
+  const losers = data.losses ?? 19;
 
-  const dashOffset = CIRCUMFERENCE - (winRate / 100) * CIRCUMFERENCE;
-  const dateLabel = getDateLabel(dateFrom, dateTo);
+  const segments = buildGauge(winners, breakevens, losers);
 
   return (
-    <div className="relative rounded-xl border border-white/[0.08] bg-card p-5 transition-all duration-200 card-glow h-full">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">Win Rate</p>
-      <div className="flex items-center gap-4">
-        <div className="relative h-16 w-16 shrink-0">
-          <svg className="h-full w-full -rotate-90" viewBox="0 0 64 64" aria-hidden="true">
-            <circle cx="32" cy="32" r={RADIUS} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="5" />
-            <circle cx="32" cy="32" r={RADIUS} fill="none" stroke="#3b82f6" strokeWidth="5" strokeLinecap="round" strokeDasharray={CIRCUMFERENCE} strokeDashoffset={dashOffset} style={{ transition: "stroke-dashoffset 1s ease" }} />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">{winRate}%</span>
-        </div>
-        <div>
-          <p className="text-3xl font-bold text-white">{winRate}%</p>
-          <p className="mt-0.5 text-xs text-gray-500">{wins} W / {losses} L</p>
-          <p className="text-xs text-gray-500">{dateLabel}</p>
+    <div className="relative flex flex-row items-center rounded-xl border border-white/[0.08] bg-card p-5 transition-all duration-200 card-glow h-full">
+      {/* Left column: label + percentage */}
+      <div className="flex flex-col min-w-0 mr-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+          Trade win %
+        </p>
+        <p className="text-2xl font-bold text-white mt-1">
+          {winRate}%
+        </p>
+      </div>
+
+      {/* Right column: gauge + counts */}
+      <div className="flex flex-col items-center ml-auto shrink-0">
+        <svg viewBox="0 8 120 52" className="w-[100px]" aria-hidden="true">
+          {/* Background track */}
+          <circle
+            cx={CX}
+            cy={CY}
+            r={R}
+            fill="none"
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth={STROKE}
+            strokeDasharray={`${HALF_CIRC} ${FULL_CIRC}`}
+            transform={`rotate(180 ${CX} ${CY})`}
+          />
+          {/* Colored segments */}
+          {segments.map((seg, i) => (
+            <circle
+              key={i}
+              cx={CX}
+              cy={CY}
+              r={R}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={STROKE}
+              strokeLinecap="round"
+              strokeDasharray={`${seg.length} ${FULL_CIRC}`}
+              strokeDashoffset={-seg.offset}
+              transform={`rotate(180 ${CX} ${CY})`}
+              style={{ transition: "stroke-dasharray 0.8s ease, stroke-dashoffset 0.8s ease" }}
+            />
+          ))}
+        </svg>
+
+        {/* Counts below gauge */}
+        <div className="flex items-center justify-between w-[100px] -mt-1 px-0.5">
+          <span className="text-[10px] font-bold text-[#22c55e]">{winners}</span>
+          {breakevens > 0 && (
+            <span className="text-[10px] font-bold text-[#3b82f6]">{breakevens}</span>
+          )}
+          <span className="text-[10px] font-bold text-[#ef4444]">{losers}</span>
         </div>
       </div>
     </div>
