@@ -16,9 +16,9 @@ const DEFAULT_LAYOUT: LayoutItem[] = [
   { widgetId: "recent-trades", colSpan: 4, rowSpan: 2, order: 8 },
   { widgetId: "news-feed", colSpan: 4, rowSpan: 2, order: 9 },
   { widgetId: "top-symbols", colSpan: 4, rowSpan: 2, order: 10 },
-  // Board row: calendar (6 cols, 3 rows ≈ 500px) + panel beside it
-  { widgetId: "performance-calendar", colSpan: 6, rowSpan: 3, order: 11 },
-  { widgetId: "performance-summary", colSpan: 6, rowSpan: 3, order: 12 },
+  // Board row: calendar (8 cols, 4 rows = height of 2 panels) + 2 panels stacked beside it
+  { widgetId: "performance-calendar", colSpan: 8, rowSpan: 4, order: 11 },
+  { widgetId: "performance-summary", colSpan: 4, rowSpan: 2, order: 12 },
   { widgetId: "economic-calendar", colSpan: 4, rowSpan: 2, order: 13 },
 ];
 
@@ -167,7 +167,7 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
     }),
     {
       name: "dashboard-layout",
-      version: 5,
+      version: 6,
       migrate: (persisted: unknown, version: number) => {
         if (version <= 1) {
           return {
@@ -176,8 +176,8 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
             isEditMode: false,
           };
         }
-        // v2/v3/v4 → v5: standardize widget sizes (StatCard / Panel / Board)
-        if (version >= 2 && version <= 4) {
+        // v2–v5 → v6: calendar 8 cols / 4 rows, panels beside it
+        if (version >= 2 && version <= 5) {
           const state = persisted as Record<string, unknown>;
           const templates = Array.isArray(state.templates) ? state.templates as DashboardTemplate[] : [];
           const updated = templates.map((t) => {
@@ -193,7 +193,7 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
           } as DashboardLayoutState;
         }
 
-        // v5 data — validate templates aren't corrupted
+        // v6 data — validate templates aren't corrupted
         const state = persisted as Record<string, unknown>;
         const templates = Array.isArray(state.templates) && state.templates.length > 0
           ? state.templates as DashboardTemplate[]

@@ -16,8 +16,8 @@ export function EmptySlot({ section }: EmptySlotProps) {
   return (
     <>
       <div
-        className="flex min-h-[100px] items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer"
-        style={isTop ? undefined : { gridColumn: "span 4" }}
+        className="flex items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all cursor-pointer"
+        style={isTop ? { minHeight: "100px" } : { gridColumn: "span 4", gridRow: "span 2" }}
         onClick={() => setIsOpen(true)}
       >
         <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
