@@ -35,7 +35,7 @@ export default function TradedeskScoreWidget() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
+    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full min-h-[280px]">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">TradeDesk Score</p>
         <span className="text-lg font-bold text-primary">{overallScore}/100</span>

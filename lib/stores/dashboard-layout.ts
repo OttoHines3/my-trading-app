@@ -11,8 +11,11 @@ const DEFAULT_LAYOUT: LayoutItem[] = [
   { widgetId: "performance-summary", colSpan: 4, rowSpan: 2, order: 5 },
   { widgetId: "recent-trades", colSpan: 6, rowSpan: 2, order: 6 },
   { widgetId: "news-feed", colSpan: 6, rowSpan: 2, order: 7 },
-  { widgetId: "economic-calendar", colSpan: 6, rowSpan: 2, order: 8 },
-  { widgetId: "market-overview", colSpan: 6, rowSpan: 2, order: 9 },
+  { widgetId: "performance-calendar", colSpan: 12, rowSpan: 3, order: 8 },
+  { widgetId: "tradedesk-score", colSpan: 6, rowSpan: 2, order: 9 },
+  { widgetId: "economic-calendar", colSpan: 6, rowSpan: 2, order: 10 },
+  { widgetId: "market-overview", colSpan: 6, rowSpan: 2, order: 11 },
+  { widgetId: "top-symbols", colSpan: 6, rowSpan: 2, order: 12 },
 ];
 
 function createDefaultTemplate(): DashboardTemplate {
@@ -160,7 +163,7 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
     }),
     {
       name: "dashboard-layout",
-      version: 2,
+      version: 3,
       migrate: (persisted: unknown, version: number) => {
         if (version === 0 || version === 1) {
           // v1 had flat { layout, isEditMode }
@@ -177,7 +180,24 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
             isEditMode: false,
           };
         }
-        // v2 data — validate templates aren't corrupted
+        // v2 → v3: update default template layout with new widgets (performance-calendar, tradedesk-score, top-symbols)
+        if (version === 2) {
+          const state = persisted as Record<string, unknown>;
+          const templates = Array.isArray(state.templates) ? state.templates as DashboardTemplate[] : [];
+          const updated = templates.map((t) => {
+            if (t.id === "default") {
+              return { ...t, layout: [...DEFAULT_LAYOUT] };
+            }
+            return t;
+          });
+          return {
+            ...state,
+            templates: updated.length > 0 ? updated : [createDefaultTemplate()],
+            isEditMode: false,
+          } as DashboardLayoutState;
+        }
+
+        // v3 data — validate templates aren't corrupted
         const state = persisted as Record<string, unknown>;
         const templates = Array.isArray(state.templates) && state.templates.length > 0
           ? state.templates as DashboardTemplate[]

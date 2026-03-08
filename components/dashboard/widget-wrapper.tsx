@@ -6,16 +6,18 @@ import { cn } from "@/lib/utils";
 interface WidgetWrapperProps {
   title: string;
   isEditMode: boolean;
+  isDragOver?: boolean;
   onRemove: () => void;
   children: React.ReactNode;
 }
 
-export function WidgetWrapper({ title, isEditMode, onRemove, children }: WidgetWrapperProps) {
+export function WidgetWrapper({ title, isEditMode, isDragOver, onRemove, children }: WidgetWrapperProps) {
   return (
     <div
       className={cn(
-        "relative h-full",
-        isEditMode && "rounded-xl border-2 border-dashed border-white/20"
+        "relative h-full transition-colors",
+        isEditMode && "cursor-grab rounded-xl border-2 border-dashed border-white/20 active:cursor-grabbing",
+        isDragOver && "border-blue-500 border-solid bg-blue-500/10"
       )}
     >
       {isEditMode && (
