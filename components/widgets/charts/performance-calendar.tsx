@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import DayDetailModal from "./day-detail-modal";
 
 interface DayData {
   pnl: number;
@@ -51,6 +52,7 @@ export default function PerformanceCalendarWidget() {
   const [month, setMonth] = useState(now.getMonth());
   const [data, setData] = useState<CalendarData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -177,12 +179,16 @@ export default function PerformanceCalendarWidget() {
                 return (
                   <div
                     key={dateKey}
+                    onClick={dayData ? () => setSelectedDate(dateKey) : undefined}
                     className={cn(
                       "relative flex flex-col rounded-md p-1.5 transition-colors min-h-[72px]",
                       dayData
-                        ? dayData.pnl >= 0
-                          ? "bg-[#14532d] border-l-2 border-green-500"
-                          : "bg-[#450a0a] border-l-2 border-red-500"
+                        ? cn(
+                            dayData.pnl >= 0
+                              ? "bg-[#14532d] border-l-2 border-green-500"
+                              : "bg-[#450a0a] border-l-2 border-red-500",
+                            "cursor-pointer hover:brightness-125"
+                          )
                         : "bg-[#16161f] border border-white/5"
                     )}
                   >
@@ -258,6 +264,12 @@ export default function PerformanceCalendarWidget() {
               ))}
         </div>
       </div>
+
+      <DayDetailModal
+        date={selectedDate ?? ""}
+        isOpen={!!selectedDate}
+        onClose={() => setSelectedDate(null)}
+      />
     </div>
   );
 }
