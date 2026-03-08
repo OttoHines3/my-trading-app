@@ -3,22 +3,23 @@ import { persist } from "zustand/middleware";
 import type { LayoutItem, DashboardTemplate } from "@/types/dashboard";
 
 const DEFAULT_LAYOUT: LayoutItem[] = [
-  // Top row: 5 stat cards (colSpan 1 = one slot in the 5-col top grid)
+  // Top row: 5 StatCards (colSpan 1 in the 5-col top grid, ~120px)
   { widgetId: "total-pnl", colSpan: 1, rowSpan: 1, order: 0 },
   { widgetId: "win-rate", colSpan: 1, rowSpan: 1, order: 1 },
   { widgetId: "profit-factor", colSpan: 1, rowSpan: 1, order: 2 },
   { widgetId: "day-win-rate", colSpan: 1, rowSpan: 1, order: 3 },
   { widgetId: "expectancy", colSpan: 1, rowSpan: 1, order: 4 },
-  // Bottom section: medium widgets (12-col grid)
+  // Bottom section: Panels (4 cols, 2 rows ≈ 320px) — 3 per row
   { widgetId: "tradedesk-score", colSpan: 4, rowSpan: 2, order: 5 },
   { widgetId: "cumulative-pnl", colSpan: 4, rowSpan: 2, order: 6 },
   { widgetId: "daily-pnl-bars", colSpan: 4, rowSpan: 2, order: 7 },
-  { widgetId: "recent-trades", colSpan: 6, rowSpan: 2, order: 8 },
-  { widgetId: "news-feed", colSpan: 6, rowSpan: 2, order: 9 },
-  { widgetId: "performance-calendar", colSpan: 7, rowSpan: 3, order: 10 },
-  { widgetId: "performance-summary", colSpan: 5, rowSpan: 3, order: 11 },
-  { widgetId: "top-symbols", colSpan: 6, rowSpan: 2, order: 12 },
-  { widgetId: "economic-calendar", colSpan: 6, rowSpan: 2, order: 13 },
+  { widgetId: "recent-trades", colSpan: 4, rowSpan: 2, order: 8 },
+  { widgetId: "news-feed", colSpan: 4, rowSpan: 2, order: 9 },
+  { widgetId: "top-symbols", colSpan: 4, rowSpan: 2, order: 10 },
+  // Board row: calendar (6 cols, 3 rows ≈ 500px) + panel beside it
+  { widgetId: "performance-calendar", colSpan: 6, rowSpan: 3, order: 11 },
+  { widgetId: "performance-summary", colSpan: 6, rowSpan: 3, order: 12 },
+  { widgetId: "economic-calendar", colSpan: 4, rowSpan: 2, order: 13 },
 ];
 
 function createDefaultTemplate(): DashboardTemplate {
@@ -166,17 +167,17 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
     }),
     {
       name: "dashboard-layout",
-      version: 4,
+      version: 5,
       migrate: (persisted: unknown, version: number) => {
-        if (version === 0 || version === 1) {
+        if (version <= 1) {
           return {
             templates: [createDefaultTemplate()],
             activeTemplateId: "default",
             isEditMode: false,
           };
         }
-        // v2/v3 → v4: reset default template to new two-section layout
-        if (version === 2 || version === 3) {
+        // v2/v3/v4 → v5: standardize widget sizes (StatCard / Panel / Board)
+        if (version >= 2 && version <= 4) {
           const state = persisted as Record<string, unknown>;
           const templates = Array.isArray(state.templates) ? state.templates as DashboardTemplate[] : [];
           const updated = templates.map((t) => {
@@ -192,7 +193,7 @@ export const useDashboardLayout = create<DashboardLayoutState>()(
           } as DashboardLayoutState;
         }
 
-        // v4 data — validate templates aren't corrupted
+        // v5 data — validate templates aren't corrupted
         const state = persisted as Record<string, unknown>;
         const templates = Array.isArray(state.templates) && state.templates.length > 0
           ? state.templates as DashboardTemplate[]

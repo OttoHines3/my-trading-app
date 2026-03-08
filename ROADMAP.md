@@ -60,18 +60,20 @@
 - [x] News feed on dashboard (from Finnhub, linked to articles)
 - [x] Mock data fallbacks for all components when API is unavailable
 - [x] Editable widget-based dashboard (12-column CSS grid, edit mode, widget library modal, localStorage persistence)
+- [x] Two-section dashboard layout: top stat cards row (5 equal columns) + bottom medium widgets area, separated by dashed divider (TradeZella-style)
+- [x] Section-aware widget library modal (top section → stats only, bottom section → charts/composite/market)
 - [x] Drag-and-drop widget reordering in edit mode (HTML5 DnD, visual drop indicators)
-- [x] Grid auto-rows with minimum heights (`minmax(120px, auto)`) for consistent widget sizing
+- [x] Grid auto-rows with minimum heights (`minmax(140px, auto)`) for consistent widget sizing
 - [x] 36 widgets: 17 stats, 8 charts, 5 composite, 4 market (all self-contained with mock fallbacks)
 - [x] Widget registry with lazy loading via `next/dynamic`
-- [x] Zustand store for dashboard layout with localStorage persist (v3 migration)
+- [x] Zustand store for dashboard layout with localStorage persist (v4 migration)
 - [x] Advanced calculation utilities (expectancy, streaks, drawdown, distribution, etc.)
 
 ---
 
 ## Phase 5 — Analytics & Reports (merged)
 - [x] Combined analytics + reports into single `/reports` page ("Analytics & Reports")
-- [x] Performance Calendar moved to dashboard widget (`performance-calendar`, 12-col chart widget)
+- [x] Performance Calendar moved to dashboard widget (`performance-calendar`, 7-col chart widget, compact size fits beside medium widget)
 - [x] Widget data API endpoint (`/api/widget-data`) — serves stats, daily P&L, by-weekday, by-hour, by-asset-class, by-symbol, drawdown, distribution via `?fields=` param; mock fallback on error
 - [x] Tabbed layout (Performance, Overview, Compare, Calendar)
 - [x] Report calculation utilities (`lib/utils/report-calculations.ts`)

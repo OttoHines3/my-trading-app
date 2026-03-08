@@ -118,7 +118,7 @@ export function DashboardGrid() {
       {(bottomItems.length > 0 || isEditMode) && (
         <div
           className="grid gap-4"
-          style={{ gridTemplateColumns: "repeat(12, 1fr)", gridAutoRows: "minmax(140px, auto)" }}
+          style={{ gridTemplateColumns: "repeat(12, 1fr)", gridAutoRows: "minmax(160px, auto)" }}
         >
           {bottomItems.map(renderWidget)}
           {isEditMode && <EmptySlot section="bottom" />}

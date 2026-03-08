@@ -107,7 +107,7 @@ export default function PerformanceCalendarWidget() {
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
   return (
-    <div className="flex flex-col rounded-xl border border-white/5 bg-card p-4 card-glow h-full min-h-[340px]">
+    <div className="flex flex-col rounded-xl border border-white/5 bg-card p-4 card-glow h-full">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">

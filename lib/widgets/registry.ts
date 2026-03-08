@@ -2,7 +2,7 @@ import dynamic from "next/dynamic";
 import type { WidgetCategory, WidgetDefinition } from "@/types/dashboard";
 
 const widgets: WidgetDefinition[] = [
-  // ── Stats widgets (colSpan: 3, rowSpan: 1) ──────────────────────────
+  // ── StatCard widgets (top row, ~120px) ─────────────────────────────
   {
     id: "total-pnl",
     name: "Total P&L",
@@ -157,13 +157,13 @@ const widgets: WidgetDefinition[] = [
     component: dynamic(() => import("@/components/widgets/stats/worst-day")),
   },
 
-  // ── Chart widgets (colSpan: 6, rowSpan: 2) ──────────────────────────
+  // ── Panel widgets (4 cols, 2 rows, ~320px) ─────────────────────────
   {
     id: "cumulative-pnl",
     name: "Cumulative P&L",
     description: "Running total P&L over time",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/cumulative-pnl")),
   },
@@ -172,7 +172,7 @@ const widgets: WidgetDefinition[] = [
     name: "Daily P&L Bars",
     description: "Bar chart of daily profit and loss",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/daily-pnl-bars")),
   },
@@ -181,7 +181,7 @@ const widgets: WidgetDefinition[] = [
     name: "Drawdown Chart",
     description: "Drawdown over time from peak equity",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/drawdown-chart")),
   },
@@ -190,7 +190,7 @@ const widgets: WidgetDefinition[] = [
     name: "P&L by Weekday",
     description: "Aggregate P&L broken down by day of week",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/pnl-by-weekday")),
   },
@@ -199,7 +199,7 @@ const widgets: WidgetDefinition[] = [
     name: "P&L by Hour",
     description: "Aggregate P&L broken down by hour of day",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/pnl-by-hour")),
   },
@@ -208,7 +208,7 @@ const widgets: WidgetDefinition[] = [
     name: "Win/Loss Distribution",
     description: "Histogram of trade P&L distribution",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/win-loss-distribution")),
   },
@@ -217,27 +217,29 @@ const widgets: WidgetDefinition[] = [
     name: "P&L by Asset Class",
     description: "P&L breakdown by asset class",
     category: "charts",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/charts/pnl-by-asset-class")),
   },
+
+  // ── Board widget (6 cols, 3 rows, ~500px+) ─────────────────────────
   {
     id: "performance-calendar",
     name: "Performance Calendar",
     description: "Monthly calendar with daily P&L, trade count, and win rate",
     category: "charts",
-    defaultColSpan: 7,
+    defaultColSpan: 6,
     defaultRowSpan: 3,
     component: dynamic(() => import("@/components/widgets/charts/performance-calendar")),
   },
 
-  // ── Composite widgets (colSpan: 6, rowSpan: 2) ──────────────────────
+  // ── Composite Panel widgets (4 cols, 2 rows) ──────────────────────
   {
     id: "recent-trades",
     name: "Recent Trades",
     description: "Latest closed trades with P&L",
     category: "composite",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/composite/recent-trades")),
   },
@@ -246,7 +248,7 @@ const widgets: WidgetDefinition[] = [
     name: "News Feed",
     description: "Latest market news headlines",
     category: "composite",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/composite/news-feed")),
   },
@@ -255,7 +257,7 @@ const widgets: WidgetDefinition[] = [
     name: "TradeDesk Score",
     description: "Composite trading performance score",
     category: "composite",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/composite/tradedesk-score")),
   },
@@ -264,7 +266,7 @@ const widgets: WidgetDefinition[] = [
     name: "Performance Summary",
     description: "Key performance metrics at a glance",
     category: "composite",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/composite/performance-summary")),
   },
@@ -273,18 +275,18 @@ const widgets: WidgetDefinition[] = [
     name: "Top Symbols",
     description: "Best and worst performing symbols",
     category: "composite",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/composite/top-symbols")),
   },
 
-  // ── Market widgets (colSpan: 6, rowSpan: 2) ─────────────────────────
+  // ── Market Panel widgets (4 cols, 2 rows) ─────────────────────────
   {
     id: "market-overview",
     name: "Market Overview",
     description: "Major index and asset prices",
     category: "market",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/market/market-overview")),
   },
@@ -293,7 +295,7 @@ const widgets: WidgetDefinition[] = [
     name: "Economic Calendar",
     description: "Upcoming economic events and releases",
     category: "market",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/market/economic-calendar")),
   },
@@ -302,7 +304,7 @@ const widgets: WidgetDefinition[] = [
     name: "SPY Chart",
     description: "S&P 500 ETF price chart",
     category: "market",
-    defaultColSpan: 6,
+    defaultColSpan: 4,
     defaultRowSpan: 2,
     component: dynamic(() => import("@/components/widgets/market/spy-chart")),
   },
