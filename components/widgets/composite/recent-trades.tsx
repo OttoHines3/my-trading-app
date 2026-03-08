@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
@@ -37,6 +38,7 @@ function formatTradeDate(dateStr: string): string {
 const colClasses = "px-4 py-3 text-xs";
 
 export default function RecentTradesWidget() {
+  const router = useRouter();
   const { data: res } = useWidgetFetch("/api/trades?limit=5", { trades: null as TradeRow[] | null });
 
   const trades = res.trades?.length
@@ -53,7 +55,10 @@ export default function RecentTradesWidget() {
         <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           Recent Trades
         </p>
-        <button className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors">
+        <button
+          onClick={() => router.push("/trades")}
+          className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
+        >
           View all
         </button>
       </div>
@@ -74,7 +79,11 @@ export default function RecentTradesWidget() {
           </thead>
           <tbody>
             {trades.map((t) => (
-              <tr key={t.id} className="border-b border-white/[0.03] transition-colors hover:bg-white/[0.02]">
+              <tr
+                key={t.id}
+                onClick={() => router.push(`/trades/${t.id}`)}
+                className="border-b border-white/[0.03] transition-colors hover:bg-white/[0.02] cursor-pointer"
+              >
                 <td className={cn(colClasses, "font-bold text-white")}>{t.symbol}</td>
                 <td className={colClasses}>
                   <span
