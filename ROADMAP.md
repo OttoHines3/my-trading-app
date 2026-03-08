@@ -159,8 +159,8 @@
 - [x] Checkbox column for bulk selection, gear icon, row click navigation to `/trades/[id]`
 - [x] Single Trade Detail page (`/trades/[id]`) with header, tabs, stats panel, chart placeholder
 - [x] Prev/next trade navigation arrows on trade detail page
-- [x] AG Charts Enterprise candlestick chart on trade detail page (entry/exit markers, timeframe selector, dark theme)
-- [x] AG Charts sparkline on trade stats panel (replaced Recharts)
+- [x] TradingView lightweight-charts candlestick chart on trade detail page (entry/exit markers, volume panel, timeframe selector, dark theme)
+- [x] Recharts sparkline on trade stats panel
 - [x] Finnhub candle data API route (`/api/candles`) with resolution support
 - [x] Sidebar "Trade View" nav link
 - [x] DayDetailModal rows clickable → navigate to `/trades/[id]`

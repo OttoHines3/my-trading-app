@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import type { Trade } from "@/types";
-import { AgCharts } from "ag-charts-react";
-import "ag-charts-enterprise";
-import type { AgChartOptions } from "ag-charts-enterprise";
+import {
+  AreaChart,
+  Area,
+  ResponsiveContainer,
+} from "recharts";
 
 interface Props {
   trade: Trade;
@@ -44,7 +45,7 @@ export function TradeStatsPanel({ trade }: Props) {
   // Simple sparkline from entry to exit
   const sparkData = [
     { value: trade.entryPrice },
-    { value: (trade.entryPrice + trade.exitPrice) / 2 + (trade.pnl > 0 ? priceChange * 0.3 : priceChange * 0.3) },
+    { value: (trade.entryPrice + trade.exitPrice) / 2 + priceChange * 0.3 },
     { value: trade.exitPrice },
   ];
 
@@ -68,6 +69,8 @@ export function TradeStatsPanel({ trade }: Props) {
     { label: "Strategy", value: trade.strategy ?? "—" },
     { label: "Commissions", value: trade.commissions ? `$${trade.commissions.toFixed(2)}` : "—" },
   ];
+
+  const sparkColor = trade.pnl >= 0 ? "#22c55e" : "#ef4444";
 
   return (
     <div className="w-[280px] shrink-0 space-y-4 overflow-y-auto">
@@ -93,8 +96,30 @@ export function TradeStatsPanel({ trade }: Props) {
         ))}
       </div>
 
-      {/* Running P&L Sparkline */}
-      <SparklinePanel trade={trade} sparkData={sparkData} />
+      {/* Running P&L Sparkline (Recharts) */}
+      <div className="rounded-xl bg-[#16161f] border border-white/5 p-4">
+        <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Price Movement</h4>
+        <div className="h-16">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={sparkData}>
+              <defs>
+                <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={sparkColor} stopOpacity={0.15} />
+                  <stop offset="100%" stopColor={sparkColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={sparkColor}
+                strokeWidth={2}
+                fill="url(#sparkGrad)"
+                dot={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
       {/* Trade Details */}
       <div className="rounded-xl bg-[#16161f] border border-white/5 p-4 space-y-3">
@@ -123,44 +148,6 @@ export function TradeStatsPanel({ trade }: Props) {
             </span>
           ))}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function SparklinePanel({ trade, sparkData }: { trade: Trade; sparkData: { value: number }[] }) {
-  const color = trade.pnl >= 0 ? "#22c55e" : "#ef4444";
-
-  const dataWithIdx = useMemo(() => sparkData.map((d, i) => ({ ...d, idx: String(i) })), [sparkData]);
-
-  const sparkOptions = useMemo((): AgChartOptions => ({
-    background: { fill: "transparent" },
-    padding: { top: 2, right: 2, bottom: 2, left: 2 },
-    data: dataWithIdx,
-    series: [
-      {
-        type: "area",
-        xKey: "idx",
-        yKey: "value",
-        stroke: color,
-        strokeWidth: 2,
-        fill: color,
-        fillOpacity: 0.15,
-        marker: { enabled: false },
-      },
-    ],
-    axes: {
-      x: { type: "category", position: "bottom", label: { enabled: false }, gridLine: { enabled: false } },
-      y: { type: "number", position: "left", label: { enabled: false }, gridLine: { enabled: false } },
-    },
-    legend: { enabled: false },
-  } as AgChartOptions), [dataWithIdx, color]);
-
-  return (
-    <div className="rounded-xl bg-[#16161f] border border-white/5 p-4">
-      <h4 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Price Movement</h4>
-      <div className="h-16">
-        <AgCharts options={sparkOptions} />
       </div>
     </div>
   );

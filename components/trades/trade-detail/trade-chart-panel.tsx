@@ -1,14 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { AgCharts } from "ag-charts-react";
-import "ag-charts-enterprise";
-import type { AgChartOptions } from "ag-charts-enterprise";
+import { useEffect, useState, useRef, useCallback } from "react";
 import type { Trade } from "@/types";
-
-interface Props {
-  trade: Trade;
-}
 
 interface CandleData {
   date: Date;
@@ -32,14 +25,21 @@ function extractUnderlying(symbol: string): string {
   return match ? match[1] : symbol.split(/\s+/)[0] || symbol;
 }
 
+interface Props {
+  trade: Trade;
+}
+
 export function TradeChartPanel({ trade }: Props) {
   const [candles, setCandles] = useState<CandleData[]>([]);
   const [loading, setLoading] = useState(true);
   const [resolution, setResolution] = useState("5");
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<ReturnType<typeof import("lightweight-charts").createChart> | null>(null);
 
   const underlying = extractUnderlying(trade.symbol);
   const tradeDate = trade.entryDate.split("T")[0];
 
+  // Fetch candle data
   useEffect(() => {
     setLoading(true);
     fetch(`/api/candles?symbol=${encodeURIComponent(underlying)}&date=${tradeDate}&resolution=${resolution}`)
@@ -55,85 +55,176 @@ export function TradeChartPanel({ trade }: Props) {
       .finally(() => setLoading(false));
   }, [underlying, tradeDate, resolution]);
 
-  const chartOptions = useMemo((): AgChartOptions => {
-    if (candles.length === 0) {
-      return {
-        data: [],
-        series: [],
-        background: { fill: "#16161f" },
-      };
+  // Build chart
+  const buildChart = useCallback(async () => {
+    if (!chartContainerRef.current || candles.length === 0) return;
+
+    // Dynamically import lightweight-charts (client-only)
+    const { createChart, ColorType, CrosshairMode } = await import("lightweight-charts");
+
+    // Clean up previous chart
+    if (chartRef.current) {
+      chartRef.current.remove();
+      chartRef.current = null;
     }
 
-    // Add entry/exit price lines as extra data points on a line series
-    const entryLine = candles.map((c) => ({ ...c, entryPrice: trade.entryPrice }));
-    const exitLine = candles.map((c) => ({ ...c, exitPrice: trade.exitPrice }));
-    void exitLine;
-
-    return {
-      background: { fill: "#16161f" },
-      padding: { top: 10, right: 10, bottom: 10, left: 10 },
-      data: candles.map((c) => ({
-        ...c,
-        entryPrice: trade.entryPrice,
-        exitPrice: trade.exitPrice,
-      })),
-      series: [
-        {
-          type: "candlestick",
-          xKey: "date",
-          openKey: "open",
-          highKey: "high",
-          lowKey: "low",
-          closeKey: "close",
-          item: {
-            up: { fill: "#22c55e", stroke: "#22c55e" },
-            down: { fill: "#ef4444", stroke: "#ef4444" },
-          },
-        },
-        {
-          type: "line",
-          xKey: "date",
-          yKey: "entryPrice",
-          stroke: "#22c55e",
-          strokeWidth: 1,
-          lineDash: [4, 4],
-          marker: { enabled: false },
-          tooltip: { enabled: false },
-        },
-        {
-          type: "line",
-          xKey: "date",
-          yKey: "exitPrice",
-          stroke: "#ef4444",
-          strokeWidth: 1,
-          lineDash: [4, 4],
-          marker: { enabled: false },
-          tooltip: { enabled: false },
-        },
-      ],
-      axes: {
-        x: {
-          type: "ordinal-time",
-          position: "bottom",
-          label: {
-            color: "rgba(255,255,255,0.4)",
-            fontSize: 10,
-          },
-          gridLine: { style: [{ stroke: "rgba(255,255,255,0.06)" }] },
-        },
-        y: {
-          type: "number",
-          position: "right",
-          label: {
-            color: "rgba(255,255,255,0.4)",
-            fontSize: 10,
-          },
-          gridLine: { style: [{ stroke: "rgba(255,255,255,0.06)" }] },
-        },
+    const container = chartContainerRef.current;
+    const chart = createChart(container, {
+      width: container.clientWidth,
+      height: container.clientHeight,
+      layout: {
+        background: { type: ColorType.Solid, color: "#16161f" },
+        textColor: "rgba(255,255,255,0.4)",
+        fontSize: 10,
       },
-      legend: { enabled: false },
-    } as AgChartOptions;
-  }, [candles, trade.entryPrice, trade.exitPrice]);
+      grid: {
+        vertLines: { color: "rgba(255,255,255,0.06)" },
+        horzLines: { color: "rgba(255,255,255,0.06)" },
+      },
+      crosshair: { mode: CrosshairMode.Normal },
+      rightPriceScale: {
+        borderColor: "rgba(255,255,255,0.1)",
+      },
+      timeScale: {
+        borderColor: "rgba(255,255,255,0.1)",
+        timeVisible: resolution !== "D",
+        secondsVisible: false,
+      },
+    });
+
+    chartRef.current = chart;
+
+    // Candlestick series (v5 API)
+    const { CandlestickSeries, HistogramSeries } = await import("lightweight-charts");
+
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: "#22c55e",
+      downColor: "#ef4444",
+      borderUpColor: "#22c55e",
+      borderDownColor: "#ef4444",
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
+    });
+
+    const candleSeriesData = candles.map((c) => ({
+      time: Math.floor(c.date.getTime() / 1000) as import("lightweight-charts").UTCTimestamp,
+      open: c.open,
+      high: c.high,
+      low: c.low,
+      close: c.close,
+    }));
+
+    candleSeries.setData(candleSeriesData);
+
+    // Volume series (v5 API)
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+    });
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    volumeSeries.setData(
+      candles.map((c) => ({
+        time: Math.floor(c.date.getTime() / 1000) as import("lightweight-charts").UTCTimestamp,
+        value: c.volume,
+        color: c.close >= c.open ? "rgba(34,197,94,0.3)" : "rgba(239,68,68,0.3)",
+      }))
+    );
+
+    // Entry/exit markers (v5 API: createSeriesMarkers)
+    if (trade.entryPrice > 0 && candleSeriesData.length > 0) {
+      const { createSeriesMarkers } = await import("lightweight-charts");
+
+      const markers: import("lightweight-charts").SeriesMarker<import("lightweight-charts").Time>[] = [];
+
+      if (trade.entryPrice > 0) {
+        let entryIdx = 0;
+        let minDiff = Infinity;
+        for (let i = 0; i < candleSeriesData.length; i++) {
+          const diff = Math.abs(candleSeriesData[i].low - trade.entryPrice);
+          if (diff < minDiff) { minDiff = diff; entryIdx = i; }
+        }
+        markers.push({
+          time: candleSeriesData[entryIdx].time,
+          position: "belowBar",
+          color: "#22c55e",
+          shape: "arrowUp",
+          text: `Entry $${trade.entryPrice.toFixed(2)}`,
+        });
+      }
+
+      if (trade.exitPrice > 0) {
+        let exitIdx = candleSeriesData.length - 1;
+        let minD = Infinity;
+        for (let i = 0; i < candleSeriesData.length; i++) {
+          const diff = Math.abs(candleSeriesData[i].high - trade.exitPrice);
+          if (diff < minD) { minD = diff; exitIdx = i; }
+        }
+        markers.push({
+          time: candleSeriesData[exitIdx].time,
+          position: "aboveBar",
+          color: "#ef4444",
+          shape: "arrowDown",
+          text: `Exit $${trade.exitPrice.toFixed(2)}`,
+        });
+      }
+
+      markers.sort((a, b) => (a.time as number) - (b.time as number));
+      createSeriesMarkers(candleSeries, markers);
+    }
+
+    // Entry/exit price lines
+    if (trade.entryPrice > 0) {
+      candleSeries.createPriceLine({
+        price: trade.entryPrice,
+        color: "#22c55e",
+        lineWidth: 1,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: "Entry",
+      });
+    }
+    if (trade.exitPrice > 0) {
+      candleSeries.createPriceLine({
+        price: trade.exitPrice,
+        color: "#ef4444",
+        lineWidth: 1,
+        lineStyle: 2, // Dashed
+        axisLabelVisible: true,
+        title: "Exit",
+      });
+    }
+
+    chart.timeScale().fitContent();
+
+    // Resize observer
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        chart.applyOptions({ width, height });
+      }
+    });
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+      chart.remove();
+      chartRef.current = null;
+    };
+  }, [candles, trade.entryPrice, trade.exitPrice, resolution]);
+
+  useEffect(() => {
+    let cleanup: (() => void) | undefined;
+    buildChart().then((fn) => {
+      cleanup = fn;
+    });
+    return () => {
+      cleanup?.();
+    };
+  }, [buildChart]);
 
   return (
     <div className="flex-1 rounded-xl bg-[#16161f] border border-white/5 p-4 flex flex-col">
@@ -177,7 +268,7 @@ export function TradeChartPanel({ trade }: Props) {
             </div>
           </div>
         ) : (
-          <AgCharts options={chartOptions} />
+          <div ref={chartContainerRef} className="w-full h-full" />
         )}
       </div>
     </div>
