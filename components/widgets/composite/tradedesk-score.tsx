@@ -29,16 +29,16 @@ export default function TradedeskScoreWidget() {
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full min-h-[280px]">
+    <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-card p-5 card-glow transition-all duration-200 h-full min-h-[280px]">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">TradeDesk Score</p>
-        <span className="text-lg font-bold text-primary">{overallScore}/100</span>
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">TradeDesk Score</p>
+        <span className="text-lg font-bold text-[#3b82f6]">{overallScore}/100</span>
       </div>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={data}>
             <PolarGrid stroke="rgba(255,255,255,0.1)" />
-            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.6)" }} />
+            <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }} />
             <Radar dataKey="score" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} strokeWidth={2} />
           </RadarChart>
         </ResponsiveContainer>

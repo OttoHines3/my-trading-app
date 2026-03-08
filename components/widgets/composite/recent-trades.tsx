@@ -48,9 +48,9 @@ export default function RecentTradesWidget() {
   const totalPnl = trades.reduce((sum, t) => sum + t.pnl, 0);
 
   return (
-    <div className="flex flex-col rounded-xl border border-white/5 bg-card card-glow transition-all duration-200 h-full">
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex flex-col rounded-xl border border-white/[0.08] bg-card card-glow transition-all duration-200 h-full">
+      <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           Recent Trades
         </p>
         <button className="text-[10px] font-medium text-primary hover:text-primary/80 transition-colors">
@@ -65,7 +65,7 @@ export default function RecentTradesWidget() {
               {["Symbol", "Side", "Entry", "Exit", "P&L", "Date"].map((h) => (
                 <th
                   key={h}
-                  className={cn(colClasses, "text-left font-semibold uppercase tracking-wider text-muted-foreground/70")}
+                  className={cn(colClasses, "text-left font-semibold uppercase tracking-wider text-gray-500")}
                 >
                   {h}
                 </th>
@@ -75,14 +75,14 @@ export default function RecentTradesWidget() {
           <tbody>
             {trades.map((t) => (
               <tr key={t.id} className="border-b border-white/[0.03] transition-colors hover:bg-white/[0.02]">
-                <td className={cn(colClasses, "font-bold text-foreground")}>{t.symbol}</td>
+                <td className={cn(colClasses, "font-bold text-white")}>{t.symbol}</td>
                 <td className={colClasses}>
                   <span
                     className={cn(
                       "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
                       t.side === "long"
-                        ? "bg-primary/15 text-primary"
-                        : "bg-destructive/15 text-destructive"
+                        ? "bg-[#22c55e]/15 text-[#22c55e]"
+                        : "bg-[#ef4444]/15 text-[#ef4444]"
                     )}
                   >
                     {t.side}
@@ -90,10 +90,10 @@ export default function RecentTradesWidget() {
                 </td>
                 <td className={cn(colClasses, "font-mono text-foreground/80")}>{t.entryPrice.toFixed(2)}</td>
                 <td className={cn(colClasses, "font-mono text-foreground/80")}>{t.exitPrice.toFixed(2)}</td>
-                <td className={cn(colClasses, "font-bold", t.pnl >= 0 ? "text-positive" : "text-destructive")}>
+                <td className={cn(colClasses, "font-bold", t.pnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]")}>
                   {t.pnl >= 0 ? "+" : "-"}${Math.abs(t.pnl).toFixed(2)}
                 </td>
-                <td className={cn(colClasses, "text-muted-foreground")}>{t.exitDate}</td>
+                <td className={cn(colClasses, "text-gray-500")}>{t.exitDate}</td>
               </tr>
             ))}
           </tbody>
@@ -101,15 +101,15 @@ export default function RecentTradesWidget() {
       </div>
 
       <div className="flex items-center gap-6 border-t border-white/5 px-4 py-2.5">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-positive" aria-hidden="true" />
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="h-2 w-2 rounded-full bg-[#22c55e]" aria-hidden="true" />
           <span>{winners} winner{winners !== 1 ? "s" : ""}</span>
         </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className="h-2 w-2 rounded-full bg-destructive" aria-hidden="true" />
+        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+          <span className="h-2 w-2 rounded-full bg-[#ef4444]" aria-hidden="true" />
           <span>{losers} loser{losers !== 1 ? "s" : ""}</span>
         </div>
-        <div className={cn("ml-auto text-xs font-semibold", totalPnl >= 0 ? "text-positive" : "text-destructive")}>
+        <div className={cn("ml-auto text-xs font-semibold", totalPnl >= 0 ? "text-[#22c55e]" : "text-[#ef4444]")}>
           {totalPnl >= 0 ? "+" : "-"}${Math.abs(totalPnl).toFixed(2)}
         </div>
       </div>

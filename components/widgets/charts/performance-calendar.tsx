@@ -107,7 +107,7 @@ export default function PerformanceCalendarWidget() {
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth();
 
   return (
-    <div className="flex flex-col rounded-xl border border-white/5 bg-card p-4 card-glow h-full">
+    <div className="flex flex-col rounded-xl border border-white/[0.08] bg-card p-5 card-glow h-full">
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -153,7 +153,7 @@ export default function PerformanceCalendarWidget() {
           {/* Weekday headers */}
           <div className="grid grid-cols-7 gap-0.5 mb-0.5">
             {WEEKDAYS.map((day) => (
-              <div key={day} className="py-1 text-center text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+              <div key={day} className="py-1 text-center text-[9px] font-semibold uppercase tracking-widest text-gray-500">
                 {day}
               </div>
             ))}
@@ -223,7 +223,7 @@ export default function PerformanceCalendarWidget() {
 
         {/* Weekly summary sidebar */}
         <div className="flex w-24 shrink-0 flex-col gap-0.5">
-          <div className="py-1 text-center text-[9px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="py-1 text-center text-[9px] font-semibold uppercase tracking-widest text-gray-500">
             Weekly
           </div>
 

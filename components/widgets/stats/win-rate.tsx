@@ -35,8 +35,8 @@ export default function WinRateWidget() {
   const dateLabel = getDateLabel(dateFrom, dateTo);
 
   return (
-    <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Win Rate</p>
+    <div className="relative rounded-xl border border-white/[0.08] bg-card p-5 transition-all duration-200 card-glow h-full">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">Win Rate</p>
       <div className="flex items-center gap-4">
         <div className="relative h-16 w-16 shrink-0">
           <svg className="h-full w-full -rotate-90" viewBox="0 0 64 64" aria-hidden="true">
@@ -46,9 +46,9 @@ export default function WinRateWidget() {
           <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-foreground">{winRate}%</span>
         </div>
         <div>
-          <p className="text-2xl font-bold text-foreground">{winRate}%</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">{wins} W / {losses} L</p>
-          <p className="text-xs text-muted-foreground">{dateLabel}</p>
+          <p className="text-3xl font-bold text-white">{winRate}%</p>
+          <p className="mt-0.5 text-xs text-gray-500">{wins} W / {losses} L</p>
+          <p className="text-xs text-gray-500">{dateLabel}</p>
         </div>
       </div>
     </div>

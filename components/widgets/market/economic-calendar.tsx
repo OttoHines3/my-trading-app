@@ -22,7 +22,7 @@ type Impact = "HIGH" | "MED" | "LOW";
 const impactStyles: Record<Impact, string> = {
   HIGH: "bg-destructive/20 text-destructive",
   MED: "bg-amber-400/20 text-amber-400",
-  LOW: "bg-white/10 text-muted-foreground",
+  LOW: "bg-white/10 text-gray-500",
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ function EventRow({ event, onClick }: { event: CalendarEvent; onClick: () => voi
       onClick={onClick}
       className="flex items-center gap-2 rounded-lg p-2 hover:bg-white/5 transition-colors cursor-pointer"
     >
-      <span className="w-9 shrink-0 text-[11px] font-mono text-muted-foreground">
+      <span className="w-9 shrink-0 text-[11px] font-mono text-gray-500">
         {event.time}
       </span>
       <span
@@ -65,10 +65,10 @@ function EventRow({ event, onClick }: { event: CalendarEvent; onClick: () => voi
         {event.name}
       </span>
       <div className="flex shrink-0 gap-3 text-[10px]">
-        <span className="text-muted-foreground">
+        <span className="text-gray-500">
           F <span className="text-foreground font-medium">{event.forecast}</span>
         </span>
-        <span className="text-muted-foreground">
+        <span className="text-gray-500">
           P <span className="text-foreground font-medium">{event.previous}</span>
         </span>
       </div>
@@ -113,16 +113,16 @@ export default function EconomicCalendarWidget() {
   let remaining = MAX_EVENTS;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-card p-5 card-glow transition-all duration-200 h-full">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
         Economic Calendar
       </p>
 
       <div className="flex flex-col gap-3 overflow-y-auto scrollbar-thin flex-1">
         {loading ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Loading...</p>
+          <p className="text-xs text-gray-500 text-center py-4">Loading...</p>
         ) : sortedDays.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">No events this week</p>
+          <p className="text-xs text-gray-500 text-center py-4">No events this week</p>
         ) : (
           sortedDays.map((day) => {
             if (remaining <= 0) return null;

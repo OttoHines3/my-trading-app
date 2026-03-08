@@ -65,7 +65,7 @@ function CandlestickChart() {
 
           return (
             <g key={i}>
-              <line x1={cx} x2={cx} y1={wickTop} y2={wickBottom} stroke={color} strokeWidth="0.4" />
+              <line x1={cx} x2={cx} y1={wickTop} y2={wickBottom} stroke={color} strokeWidth="0.5" />
               <rect x={cx - candleWidth / 2} y={bodyTop} width={candleWidth} height={bodyH} fill={color} rx="0.3" />
             </g>
           );
@@ -74,7 +74,7 @@ function CandlestickChart() {
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between py-2">
         {[525, 523, 521, 519].map((price) => (
-          <span key={price} className="text-right text-[10px] text-muted-foreground/60 pr-1">
+          <span key={price} className="text-right text-[10px] text-gray-500/60 pr-1">
             {price}
           </span>
         ))}
@@ -87,10 +87,10 @@ function CandlestickChart() {
 
 export default function SpyChartWidget() {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">SPY Intraday</p>
+    <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-card p-5 card-glow transition-all duration-200 h-full">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">SPY Intraday</p>
       <CandlestickChart />
-      <div className="flex justify-between px-1 text-[10px] text-muted-foreground/50">
+      <div className="flex justify-between px-1 text-[10px] text-gray-500/50">
         {["9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00"].map((t) => (
           <span key={t}>{t}</span>
         ))}

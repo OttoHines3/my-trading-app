@@ -15,8 +15,8 @@ export default function PnlByAssetClassWidget() {
   const data = res.byAssetClass?.length ? res.byAssetClass : mockData;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">P&L by Asset Class</p>
+    <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-card p-5 card-glow transition-all duration-200 h-full">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">P&L by Asset Class</p>
       <div className="flex flex-1 items-center gap-4 min-h-0">
         <div className="h-full w-1/2">
           <ResponsiveContainer width="100%" height="100%">

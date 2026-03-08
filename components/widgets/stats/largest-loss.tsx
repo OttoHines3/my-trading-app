@@ -9,13 +9,13 @@ export default function LargestLossWidget() {
   const symbol = data.stats?.largestLoss?.symbol ?? "NVDA";
 
   return (
-    <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Largest Loss</p>
+    <div className="relative rounded-xl border border-white/[0.08] bg-card p-5 transition-all duration-200 card-glow h-full">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">Largest Loss</p>
       <div className="flex items-center gap-2">
-        <TrendingDown className="h-5 w-5 text-destructive" />
-        <p className="text-2xl font-bold text-destructive">-${Math.abs(pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
+        <TrendingDown className="h-5 w-5 text-[#ef4444]" />
+        <p className="text-3xl font-bold text-[#ef4444]">-${Math.abs(pnl).toLocaleString("en-US", { minimumFractionDigits: 2 })}</p>
       </div>
-      <p className="mt-0.5 text-xs text-muted-foreground">{symbol}</p>
+      <p className="mt-0.5 text-xs text-gray-500">{symbol}</p>
     </div>
   );
 }

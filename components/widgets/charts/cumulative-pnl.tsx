@@ -26,8 +26,8 @@ export default function CumulativePnlWidget() {
   const color = isPositive ? "#22c55e" : "#ef4444";
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Cumulative P&L</p>
+    <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-card p-5 card-glow transition-all duration-200 h-full">
+      <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Cumulative P&L</p>
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
@@ -37,8 +37,8 @@ export default function CumulativePnlWidget() {
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="date" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.4)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+            <XAxis dataKey="date" tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10, fill: "rgba(255,255,255,0.5)" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
             <Tooltip contentStyle={{ backgroundColor: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", fontSize: "12px" }} labelStyle={{ color: "rgba(255,255,255,0.6)" }} formatter={(value) => [`$${Number(value).toFixed(2)}`, "P&L"]} />
             <Area type="monotone" dataKey="pnl" stroke={color} strokeWidth={2} fill="url(#pnlGradient)" />
           </AreaChart>

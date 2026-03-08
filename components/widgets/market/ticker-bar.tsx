@@ -92,10 +92,10 @@ export default function TickerBarWidget() {
       aria-label="Market ticker"
     >
       <div className="flex shrink-0 items-center border-r border-white/10 px-3 h-full">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-gray-500">
           LIVE
         </span>
-        <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-positive animate-pulse" aria-hidden="true" />
+        <span className="ml-1.5 h-1.5 w-1.5 rounded-full bg-[#22c55e] animate-pulse" aria-hidden="true" />
       </div>
 
       <div className="relative flex-1 overflow-hidden">
@@ -114,7 +114,7 @@ export default function TickerBarWidget() {
               <span
                 className={cn(
                   "flex items-center gap-0.5 text-xs font-medium",
-                  item.up ? "text-positive" : "text-destructive"
+                  item.up ? "text-[#22c55e]" : "text-[#ef4444]"
                 )}
               >
                 {item.up ? (

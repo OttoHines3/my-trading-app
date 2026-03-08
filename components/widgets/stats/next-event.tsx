@@ -54,14 +54,14 @@ export default function NextEventWidget() {
 
   const countdown = useCountdown(targetMs);
   const impactColor = event.impact === "HIGH"
-    ? "bg-destructive/20 text-destructive"
+    ? "bg-[#ef4444]/20 text-[#ef4444]"
     : event.impact === "MED"
     ? "bg-amber-400/20 text-amber-400"
-    : "bg-white/10 text-muted-foreground";
+    : "bg-white/10 text-gray-500";
 
   return (
-    <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">
-      <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Next Economic Event</p>
+    <div className="relative rounded-xl border border-white/[0.08] bg-card p-5 transition-all duration-200 card-glow h-full">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-500">Next Economic Event</p>
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-lg font-bold text-foreground leading-tight">{event.name}</p>
@@ -69,7 +69,7 @@ export default function NextEventWidget() {
             <span className={cn("rounded-sm px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide", impactColor)}>
               {event.impact}
             </span>
-            <span className="text-xs text-muted-foreground">Impact</span>
+            <span className="text-xs text-gray-500">Impact</span>
           </div>
         </div>
         <div className="text-right">
@@ -77,12 +77,12 @@ export default function NextEventWidget() {
             <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="text-sm font-bold tabular-nums">{countdown}</span>
           </div>
-          <p className="mt-0.5 text-xs text-muted-foreground">{event.time} ET</p>
+          <p className="mt-0.5 text-xs text-gray-500">{event.time} ET</p>
         </div>
       </div>
       <div className="mt-3 flex gap-3 text-xs">
-        <div><span className="text-muted-foreground">Forecast </span><span className="font-semibold text-foreground">{event.forecast}</span></div>
-        <div><span className="text-muted-foreground">Previous </span><span className="font-semibold text-foreground">{event.previous}</span></div>
+        <div><span className="text-gray-500">Forecast </span><span className="font-semibold text-foreground">{event.forecast}</span></div>
+        <div><span className="text-gray-500">Previous </span><span className="font-semibold text-foreground">{event.previous}</span></div>
       </div>
       <div className="mt-2 h-0.5 w-full rounded-full bg-white/5">
         <div className="h-full w-2/3 rounded-full bg-amber-400/60" />

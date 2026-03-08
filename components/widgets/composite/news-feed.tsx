@@ -84,9 +84,9 @@ export default function NewsFeedWidget() {
   }, []);
 
   return (
-    <div className="flex flex-col rounded-xl border border-white/5 bg-card card-glow transition-all duration-200 h-full">
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="flex flex-col rounded-xl border border-white/[0.08] bg-card card-glow transition-all duration-200 h-full">
+      <div className="flex items-center justify-between border-b border-white/5 px-5 py-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
           News Feed
         </p>
         <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">
@@ -112,10 +112,10 @@ export default function NewsFeedWidget() {
               >
                 {item.tag}
               </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
                 {item.source}
               </span>
-              <span className="ml-auto text-[10px] text-muted-foreground">{item.timeAgo}</span>
+              <span className="ml-auto text-[10px] text-gray-500">{item.timeAgo}</span>
             </div>
             <p className="text-xs font-medium leading-relaxed text-foreground/90">
               {item.headline}

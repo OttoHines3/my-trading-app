@@ -90,7 +90,7 @@ function CandlestickChart() {
 
           return (
             <g key={i}>
-              <line x1={cx} x2={cx} y1={wickTop} y2={wickBottom} stroke={color} strokeWidth="0.4" />
+              <line x1={cx} x2={cx} y1={wickTop} y2={wickBottom} stroke={color} strokeWidth="0.5" />
               <rect x={cx - candleWidth / 2} y={bodyTop} width={candleWidth} height={bodyH} fill={color} rx="0.3" />
             </g>
           );
@@ -99,7 +99,7 @@ function CandlestickChart() {
 
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-between py-2">
         {[525, 523, 521, 519].map((price) => (
-          <span key={price} className="text-right text-[10px] text-muted-foreground/60 pr-1">
+          <span key={price} className="text-right text-[10px] text-gray-500/60 pr-1">
             {price}
           </span>
         ))}
@@ -148,16 +148,16 @@ export default function MarketOverviewWidget() {
   const pctNum = spy.raw?.dp ?? parseFloat(spy.pct);
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">
+    <div className="flex flex-col gap-3 rounded-xl border border-white/[0.08] bg-card p-5 card-glow transition-all duration-200 h-full">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">
             Market Overview
           </p>
           <div className="mt-0.5 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-foreground">SPY</span>
-            <span className="text-lg font-semibold text-foreground">{spy.price}</span>
-            <span className={cn("flex items-center gap-0.5 text-sm font-medium", spy.up ? "text-positive" : "text-destructive")}>
+            <span className="text-xl font-bold text-white">SPY</span>
+            <span className="text-lg font-bold text-white">{spy.price}</span>
+            <span className={cn("flex items-center gap-0.5 text-sm font-medium", spy.up ? "text-[#22c55e]" : "text-[#ef4444]")}>
               {spy.up ? <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> : <TrendingDown className="h-3.5 w-3.5" aria-hidden="true" />}
               {changeNum >= 0 ? "+" : ""}{changeNum.toFixed(2)} ({pctNum >= 0 ? "+" : ""}{pctNum.toFixed(2)}%)
             </span>
@@ -171,7 +171,7 @@ export default function MarketOverviewWidget() {
                 "rounded px-2 py-0.5 text-xs font-medium transition-colors",
                 tf === "5m"
                   ? "bg-primary text-white"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  : "text-gray-500 hover:text-foreground hover:bg-white/5"
               )}
             >
               {tf}
@@ -182,7 +182,7 @@ export default function MarketOverviewWidget() {
 
       <CandlestickChart />
 
-      <div className="flex justify-between px-1 text-[10px] text-muted-foreground/50">
+      <div className="flex justify-between px-1 text-[10px] text-gray-500/50">
         {["9:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00"].map((t) => (
           <span key={t}>{t}</span>
         ))}
@@ -191,9 +191,9 @@ export default function MarketOverviewWidget() {
       <div className="mt-1 flex items-center gap-0 divide-x divide-white/5 rounded-lg border border-white/5 bg-secondary/50">
         {miniMarkets.map((m) => (
           <div key={m.symbol} className="flex flex-1 flex-col items-center py-2">
-            <span className="text-[10px] font-semibold text-muted-foreground">{m.symbol}</span>
-            <span className="text-xs font-semibold text-foreground">{m.quote.price}</span>
-            <span className={cn("text-[10px] font-medium", m.quote.up ? "text-positive" : "text-destructive")}>
+            <span className="text-[10px] font-semibold text-gray-500">{m.symbol}</span>
+            <span className="text-xs font-bold text-white">{m.quote.price}</span>
+            <span className={cn("text-[10px] font-medium", m.quote.up ? "text-[#22c55e]" : "text-[#ef4444]")}>
               {m.quote.pct}
             </span>
           </div>
