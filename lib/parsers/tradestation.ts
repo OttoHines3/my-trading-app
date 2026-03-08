@@ -300,79 +300,87 @@ export function parseTradeStationCSV(text: string): ParsedTradeResult {
     };
   }
 
-  // Group executions by symbol into open/close buckets
-  const symbolGroups = new Map<string, { opens: Execution[]; closes: Execution[] }>();
+  // Group executions by symbol, then FIFO match opens to closes
+  // so each open+close pair becomes its own trade
+  const openQueues = new Map<string, Execution[]>();
 
   for (const exec of executions) {
-    if (!symbolGroups.has(exec.symbol)) {
-      symbolGroups.set(exec.symbol, { opens: [], closes: [] });
-    }
-    const group = symbolGroups.get(exec.symbol)!;
-
-    if (isCloseSide(exec.side)) {
-      group.closes.push(exec);
-    } else {
-      group.opens.push(exec);
+    if (!isCloseSide(exec.side)) {
+      const queue = openQueues.get(exec.symbol) || [];
+      queue.push(exec);
+      openQueues.set(exec.symbol, queue);
     }
   }
 
-  // Build round-trip trades from grouped executions
+  // Build round-trip trades via FIFO matching
   const trades: GroupedTrade[] = [];
 
-  for (const [symbol, { opens, closes }] of symbolGroups) {
-    const optionInfo = parseOptionSymbol(symbol);
-    const underlying = optionInfo ? optionInfo.underlying : symbol;
+  function buildTrade(rawSymbol: string, open: Execution | null, close: Execution | null): void {
+    const optionInfo = parseOptionSymbol(rawSymbol);
     const assetClass = optionInfo ? "options" : "stocks";
+    // Store full option symbol (e.g. "SPY 260306C6790") so the UI can parse strike/expiry
+    const symbol = rawSymbol;
+    const underlying = optionInfo ? optionInfo.underlying : rawSymbol;
 
-    const isShort = opens.length > 0 && isShortOpen(opens[0].side);
+    const isShort = open ? isShortOpen(open.side) : false;
     const side = isShort ? "short" : "long";
 
-    // Calculate entry stats from opens
-    const totalOpenQty = opens.reduce((s, e) => s + Math.abs(e.quantity), 0);
-    const weightedEntryPrice = totalOpenQty > 0
-      ? opens.reduce((s, e) => s + e.price * Math.abs(e.quantity), 0) / totalOpenQty
-      : 0;
-    const entryDate = opens.length > 0 ? parseDate(opens[0].date) : new Date();
+    const entryPrice = open?.price ?? 0;
+    const exitPrice = close?.price ?? 0;
+    const entryDate = open ? parseDate(open.date) : close ? parseDate(close.date) : new Date();
+    const exitDate = close ? parseDate(close.date) : entryDate;
+    const quantity = Math.abs(open?.quantity ?? close?.quantity ?? 0);
 
-    // Calculate exit stats from closes
-    const totalCloseQty = closes.reduce((s, e) => s + Math.abs(e.quantity), 0);
-    const weightedExitPrice = totalCloseQty > 0
-      ? closes.reduce((s, e) => s + e.price * Math.abs(e.quantity), 0) / totalCloseQty
-      : 0;
-    const exitDate = closes.length > 0 ? parseDate(closes[closes.length - 1].date) : entryDate;
-
-    // Total P&L from net amounts (most accurate, includes fees)
-    const allExecs = [...opens, ...closes];
+    const allExecs = [open, close].filter(Boolean) as Execution[];
     const totalNetAmount = allExecs.reduce((s, e) => s + e.netAmount, 0);
     const totalCommission = allExecs.reduce((s, e) => s + e.commission, 0);
     const totalFees = allExecs.reduce((s, e) => s + e.otherFees, 0);
 
-    // Build notes with trade details
     const noteParts: string[] = [];
     if (optionInfo) {
-      noteParts.push(`${optionInfo.underlying} ${optionInfo.expiry.slice(0, 2)}/${optionInfo.expiry.slice(2, 4)}/${optionInfo.expiry.slice(4, 6)} ${optionInfo.type} $${optionInfo.strike}`);
+      noteParts.push(`${underlying} ${optionInfo.expiry.slice(0, 2)}/${optionInfo.expiry.slice(2, 4)}/${optionInfo.expiry.slice(4, 6)} ${optionInfo.type} $${optionInfo.strike}`);
     }
     if (totalCommission) noteParts.push(`Commission: $${Math.abs(totalCommission).toFixed(2)}`);
     if (totalFees) noteParts.push(`Fees: $${Math.abs(totalFees).toFixed(2)}`);
 
-    const quantity = Math.max(totalOpenQty, totalCloseQty);
-
     if (quantity > 0) {
       trades.push({
-        symbol: underlying,
+        symbol,
         underlying,
         assetClass,
         side,
         entryDate,
         exitDate,
-        entryPrice: weightedEntryPrice,
-        exitPrice: weightedExitPrice,
+        entryPrice,
+        exitPrice,
         quantity,
         pnl: totalNetAmount,
         commissions: Math.abs(totalCommission),
         fees: Math.abs(totalFees),
         notes: noteParts.join(" | "),
       });
+    }
+  }
+
+  // Match closing executions to opens FIFO by symbol
+  for (const exec of executions) {
+    if (!isCloseSide(exec.side)) continue;
+
+    const queue = openQueues.get(exec.symbol);
+    if (queue && queue.length > 0) {
+      const openExec = queue.shift()!;
+      if (queue.length === 0) openQueues.delete(exec.symbol);
+      buildTrade(exec.symbol, openExec, exec);
+    } else {
+      // Closing with no matching open — standalone
+      buildTrade(exec.symbol, null, exec);
+    }
+  }
+
+  // Remaining unclosed opens
+  for (const [symbol, queue] of openQueues) {
+    for (const openExec of queue) {
+      buildTrade(symbol, openExec, null);
     }
   }
 
