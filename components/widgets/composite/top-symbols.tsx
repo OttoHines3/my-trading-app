@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 interface SymbolStat {
   symbol: string;
@@ -19,14 +19,8 @@ const mockData: SymbolStat[] = [
 ];
 
 export default function TopSymbolsWidget() {
-  const [data, setData] = useState(mockData);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=by-symbol")
-      .then((r) => r.json())
-      .then((res) => { if (res.bySymbol?.length) setData(res.bySymbol.slice(0, 8)); })
-      .catch(() => {});
-  }, []);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=by-symbol", { bySymbol: null as SymbolStat[] | null });
+  const data = res.bySymbol?.length ? res.bySymbol.slice(0, 8) : mockData;
 
   return (
     <div className="flex flex-col rounded-xl border border-white/5 bg-card card-glow transition-all duration-200 h-full">

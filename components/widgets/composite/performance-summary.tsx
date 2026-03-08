@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 interface Stats {
   winRate: number;
@@ -12,31 +12,21 @@ interface Stats {
   expectancy: number;
 }
 
-const mockStats: Stats = {
+const defaults: Stats = {
   winRate: 67, profitFactor: 2.4, avgWinner: 320,
   avgLoser: -180, totalTrades: 64, expectancy: 45.6,
 };
 
 export default function PerformanceSummaryWidget() {
-  const [stats, setStats] = useState<Stats>(mockStats);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.stats) {
-          setStats({
-            winRate: res.stats.winRate ?? 67,
-            profitFactor: res.stats.profitFactor ?? 2.4,
-            avgWinner: res.stats.avgWinner ?? 320,
-            avgLoser: res.stats.avgLoser ?? -180,
-            totalTrades: res.stats.totalTrades ?? 64,
-            expectancy: res.stats.expectancy ?? 45.6,
-          });
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as Stats | null });
+  const stats: Stats = {
+    winRate: res.stats?.winRate ?? defaults.winRate,
+    profitFactor: res.stats?.profitFactor ?? defaults.profitFactor,
+    avgWinner: res.stats?.avgWinner ?? defaults.avgWinner,
+    avgLoser: res.stats?.avgLoser ?? defaults.avgLoser,
+    totalTrades: res.stats?.totalTrades ?? defaults.totalTrades,
+    expectancy: res.stats?.expectancy ?? defaults.expectancy,
+  };
 
   const rows = [
     { label: "Win Rate", value: `${stats.winRate}%`, color: stats.winRate >= 50 ? "text-positive" : "text-destructive" },

@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-
-// ── Types ────────────────────────────────────────────────────────────────────
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 interface TradeRow {
   id: string;
@@ -15,8 +13,6 @@ interface TradeRow {
   exitDate: string;
 }
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-
 const MOCK_TRADES: TradeRow[] = [
   { id: "1", symbol: "SPY", side: "long", entryPrice: 521.40, exitPrice: 523.85, pnl: 490, exitDate: "Today 11:42" },
   { id: "2", symbol: "QQQ", side: "short", entryPrice: 449.20, exitPrice: 447.60, pnl: 320, exitDate: "Today 10:15" },
@@ -25,8 +21,6 @@ const MOCK_TRADES: TradeRow[] = [
   { id: "5", symbol: "AAPL", side: "short", entryPrice: 182.30, exitPrice: 181.80, pnl: 460, exitDate: "Yesterday" },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatTradeDate(dateStr: string): string {
   const date = new Date(dateStr);
   const now = new Date();
@@ -34,35 +28,20 @@ function formatTradeDate(dateStr: string): string {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
-
   const time = date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
-
   if (isToday) return `Today ${time}`;
   if (isYesterday) return "Yesterday";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-// ── Recent Trades Widget ─────────────────────────────────────────────────────
-
 const colClasses = "px-4 py-3 text-xs";
 
 export default function RecentTradesWidget() {
-  const [trades, setTrades] = useState<TradeRow[]>(MOCK_TRADES);
+  const { data: res } = useWidgetFetch("/api/trades?limit=5", { trades: null as TradeRow[] | null });
 
-  useEffect(() => {
-    fetch("/api/trades?limit=5")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.trades && data.trades.length > 0) {
-          const mapped = data.trades.map((t: TradeRow) => ({
-            ...t,
-            exitDate: formatTradeDate(t.exitDate),
-          }));
-          setTrades(mapped);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const trades = res.trades?.length
+    ? res.trades.map((t) => ({ ...t, exitDate: formatTradeDate(t.exitDate) }))
+    : MOCK_TRADES;
 
   const winners = trades.filter((t) => t.pnl > 0).length;
   const losers = trades.filter((t) => t.pnl <= 0).length;
