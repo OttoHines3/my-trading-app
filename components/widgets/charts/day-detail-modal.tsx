@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { X, Play, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -79,6 +80,7 @@ function calcRoi(trade: Trade): string {
 }
 
 export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModalProps) {
+  const router = useRouter();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -326,7 +328,8 @@ export default function DayDetailModal({ date, isOpen, onClose }: DayDetailModal
                           return (
                             <tr
                               key={trade.id}
-                              className="border-b border-white/5 hover:bg-white/[0.03] transition-colors"
+                              onClick={() => { onClose(); router.push(`/trades/${trade.id}`); }}
+                              className="border-b border-white/5 hover:bg-white/[0.03] transition-colors cursor-pointer"
                             >
                               <td className="px-4 py-4 text-sm text-gray-300">
                                 {formatTime(trade.entryDate)}

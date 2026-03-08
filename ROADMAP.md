@@ -35,7 +35,7 @@
 - [-] Trade detail page (`/journal/[id]`) — route exists, not built
 - [ ] API route: `POST /api/trades` — create trade
 - [x] API route: `GET /api/trades` — list trades for user
-- [ ] API route: `GET /api/trades/[id]` — single trade
+- [x] API route: `GET /api/trades/[id]` — single trade
 - [ ] API route: `PATCH /api/trades/[id]` — update trade
 - [ ] API route: `DELETE /api/trades/[id]` — delete trade
 - [ ] Trade form fields: symbol, side, asset class, entry/exit price, quantity, dates, P&L auto-calc, tags, notes
@@ -152,6 +152,14 @@
 - [x] API routes updated with filter/pagination/sorting support (`/api/trades`, `/api/widget-data`, `/api/dashboard-stats`)
 - [x] Widget fetch hook (`lib/hooks/use-widget-fetch.ts`)
 - [x] Trade View page (`/trades`) with summary cards, sortable table, pagination
+- [x] Enhanced trade summary cards (Net P&L sparkline, Profit Factor gauge, Win % semicircle, Avg Win/Loss bar)
+- [x] Configurable trade table columns with Zustand store + localStorage persistence
+- [x] Column Selector modal (checkbox grid, All/None/Default quick select)
+- [x] Checkbox column for bulk selection, gear icon, row click navigation to `/trades/[id]`
+- [x] Single Trade Detail page (`/trades/[id]`) with header, tabs, stats panel, chart placeholder
+- [x] Prev/next trade navigation arrows on trade detail page
+- [x] Sidebar "Trade View" nav link
+- [x] DayDetailModal rows clickable → navigate to `/trades/[id]`
 - [x] Dashboard templates (create, rename, duplicate, delete, switch) with v1→v2 store migration
 - [x] Trade model extended: `strategy`, `commissions`, `reviewed`, `tradeRating` fields
 

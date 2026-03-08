@@ -14,11 +14,13 @@ import {
   Briefcase,
   ChevronRight,
   TrendingUp,
+  ListOrdered,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
+  { icon: ListOrdered, label: "Trade View", href: "/trades" },
   { icon: BookOpen, label: "Journal", href: "/journal" },
   { icon: BarChart2, label: "Analytics", href: "/reports" },
   { icon: Calendar, label: "Calendar", href: "/calendar" },
