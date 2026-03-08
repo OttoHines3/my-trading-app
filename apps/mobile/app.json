@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Trading App",
+    "slug": "trading-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "tradingapp",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.trading.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#030712"
+      },
+      "package": "com.trading.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": ["expo-router"]
+  }
+}
