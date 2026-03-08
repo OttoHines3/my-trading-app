@@ -1,23 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function WorstDayWidget() {
-  const [pnl, setPnl] = useState(-890);
-  const [date, setDate] = useState("2026-02-28");
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.stats?.worstDay) {
-          setPnl(data.stats.worstDay.pnl);
-          setDate(data.stats.worstDay.date);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { worstDay?: { pnl: number; date: string } } | null });
+  const pnl = data.stats?.worstDay?.pnl ?? -890;
+  const date = data.stats?.worstDay?.date ?? "2026-02-28";
 
   const formatted = new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 

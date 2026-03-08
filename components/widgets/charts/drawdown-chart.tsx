@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const mockData = [
   { date: "Feb 1", drawdown: 0 }, { date: "Feb 5", drawdown: -120 }, { date: "Feb 10", drawdown: -340 },
@@ -10,22 +10,15 @@ const mockData = [
 ];
 
 export default function DrawdownChartWidget() {
-  const [data, setData] = useState(mockData);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=drawdown", { drawdown: null as { date: string; drawdown: number }[] | null });
 
-  useEffect(() => {
-    fetch("/api/widget-data?fields=drawdown")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.drawdown?.length) {
-          const mapped = res.drawdown.map((d: { date: string; drawdown: number }) => ({
-            date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-            drawdown: d.drawdown,
-          }));
-          setData(mapped);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  let data = mockData;
+  if (res.drawdown?.length) {
+    data = res.drawdown.map((d) => ({
+      date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      drawdown: d.drawdown,
+    }));
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">

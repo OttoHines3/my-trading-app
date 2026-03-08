@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ArrowDownRight } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function MaxDrawdownWidget() {
-  const [dd, setDd] = useState(-2100);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => { if (data.stats?.maxDrawdown != null) setDd(data.stats.maxDrawdown); })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { maxDrawdown?: number } | null });
+  const dd = data.stats?.maxDrawdown ?? -2100;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Activity } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function OpenPositionsWidget() {
-  const [count, setCount] = useState(2);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => { if (data.stats?.openPositions != null) setCount(data.stats.openPositions); })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { openPositions?: number } | null });
+  const count = data.stats?.openPositions ?? 2;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

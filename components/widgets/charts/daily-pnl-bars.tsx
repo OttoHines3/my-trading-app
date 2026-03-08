@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const mockData = [
   { date: "Mon", pnl: 320 }, { date: "Tue", pnl: -150 }, { date: "Wed", pnl: 480 },
@@ -10,22 +10,15 @@ const mockData = [
 ];
 
 export default function DailyPnlBarsWidget() {
-  const [data, setData] = useState(mockData);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=daily-pnl", { dailyPnl: null as { date: string; pnl: number }[] | null });
 
-  useEffect(() => {
-    fetch("/api/widget-data?fields=daily-pnl")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.dailyPnl?.length) {
-          const mapped = res.dailyPnl.slice(-20).map((d: { date: string; pnl: number }) => {
-            const dateObj = new Date(d.date);
-            return { date: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }), pnl: d.pnl };
-          });
-          setData(mapped);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  let data = mockData;
+  if (res.dailyPnl?.length) {
+    data = res.dailyPnl.slice(-20).map((d) => {
+      const dateObj = new Date(d.date);
+      return { date: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }), pnl: d.pnl };
+    });
+  }
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">

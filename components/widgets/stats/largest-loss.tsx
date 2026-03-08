@@ -1,23 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { TrendingDown } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function LargestLossWidget() {
-  const [pnl, setPnl] = useState(-450);
-  const [symbol, setSymbol] = useState("NVDA");
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.stats?.largestLoss) {
-          setPnl(data.stats.largestLoss.pnl);
-          setSymbol(data.stats.largestLoss.symbol);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { largestLoss?: { pnl: number; symbol: string } } | null });
+  const pnl = data.stats?.largestLoss?.pnl ?? -450;
+  const symbol = data.stats?.largestLoss?.symbol ?? "NVDA";
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

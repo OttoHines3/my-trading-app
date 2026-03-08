@@ -10,36 +10,28 @@ export async function GET(request: Request) {
 
     const now = new Date();
     const todayStart = startOfDay(now);
-    const thirtyDaysAgo = subDays(now, 30);
 
     // TODO: filter by userId once auth is implemented
-    const [allTrades, todayTrades, thirtyDayTrades] = await Promise.all([
+    const [allTrades, todayTrades] = await Promise.all([
       prisma.trade.findMany({
         where,
-        select: { pnl: true },
+        orderBy: { exitDate: "asc" },
       }),
       prisma.trade.findMany({
         where: { ...where, exitDate: { gte: todayStart } },
-      }),
-      prisma.trade.findMany({
-        where: { ...where, exitDate: { gte: thirtyDaysAgo } },
       }),
     ]);
 
     const totalPnl = allTrades.reduce((sum, t) => sum + t.pnl, 0);
     const todayPnl = todayTrades.reduce((sum, t) => sum + t.pnl, 0);
-    const wins = thirtyDayTrades.filter((t) => t.pnl > 0).length;
-    const losses = thirtyDayTrades.filter((t) => t.pnl <= 0).length;
-    const winRate = thirtyDayTrades.length > 0
-      ? Math.round((wins / thirtyDayTrades.length) * 100)
+    const wins = allTrades.filter((t) => t.pnl > 0).length;
+    const losses = allTrades.filter((t) => t.pnl <= 0).length;
+    const winRate = allTrades.length > 0
+      ? Math.round((wins / allTrades.length) * 100)
       : 0;
 
-    // Build P&L sparkline from last 12 days
-    const twelveDaysAgo = subDays(now, 12);
-    const historyTrades = await prisma.trade.findMany({
-      where: { ...where, exitDate: { gte: twelveDaysAgo } },
-      orderBy: { exitDate: "asc" },
-    });
+    // Build P&L sparkline from filtered trades (already sorted by exitDate)
+    const historyTrades = allTrades;
 
     const pnlByDay: Record<string, number> = {};
     let cumulative = 0;

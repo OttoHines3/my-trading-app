@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const mockData = [
   { bucket: "<-500", count: 2 }, { bucket: "-500 to -250", count: 5 },
@@ -10,14 +10,8 @@ const mockData = [
 ];
 
 export default function WinLossDistributionWidget() {
-  const [data, setData] = useState(mockData);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=distribution")
-      .then((r) => r.json())
-      .then((res) => { if (res.distribution?.length) setData(res.distribution); })
-      .catch(() => {});
-  }, []);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=distribution", { distribution: null as { bucket: string; count: number }[] | null });
+  const data = res.distribution?.length ? res.distribution : mockData;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">

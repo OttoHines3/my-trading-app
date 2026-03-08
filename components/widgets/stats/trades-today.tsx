@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BarChart, Bar, ResponsiveContainer, Tooltip } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const defaultBarData = [
   { v: 1 }, { v: 0 }, { v: 1 }, { v: 1 }, { v: 0 },
@@ -9,21 +9,17 @@ const defaultBarData = [
   { v: 0 }, { v: 1 }, { v: 0 }, { v: 0 }, { v: 1 },
 ];
 
-export default function TradesTodayWidget() {
-  const [tradesToday, setTradesToday] = useState(4);
-  const [winsToday, setWinsToday] = useState(3);
-  const [lossesToday, setLossesToday] = useState(1);
+interface DashboardStats {
+  tradesToday?: number;
+  tradeWinsToday?: number;
+  tradeLossesToday?: number;
+}
 
-  useEffect(() => {
-    fetch("/api/dashboard-stats")
-      .then((r) => r.json())
-      .then((data) => {
-        setTradesToday(data.tradesToday);
-        setWinsToday(data.tradeWinsToday);
-        setLossesToday(data.tradeLossesToday);
-      })
-      .catch(() => {});
-  }, []);
+export default function TradesTodayWidget() {
+  const { data } = useWidgetFetch<DashboardStats>("/api/dashboard-stats", {});
+  const tradesToday = data.tradesToday ?? 4;
+  const winsToday = data.tradeWinsToday ?? 3;
+  const lossesToday = data.tradeLossesToday ?? 1;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

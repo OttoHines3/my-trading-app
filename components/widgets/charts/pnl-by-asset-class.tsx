@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -11,14 +11,8 @@ const mockData = [
 ];
 
 export default function PnlByAssetClassWidget() {
-  const [data, setData] = useState(mockData);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=by-asset-class")
-      .then((r) => r.json())
-      .then((res) => { if (res.byAssetClass?.length) setData(res.byAssetClass); })
-      .catch(() => {});
-  }, []);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=by-asset-class", { byAssetClass: null as { assetClass: string; pnl: number }[] | null });
+  const data = res.byAssetClass?.length ? res.byAssetClass : mockData;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">

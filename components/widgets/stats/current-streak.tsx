@@ -1,24 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Flame } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function CurrentStreakWidget() {
-  const [type, setType] = useState<"win" | "loss">("win");
-  const [count, setCount] = useState(3);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.stats?.currentStreak) {
-          setType(data.stats.currentStreak.type);
-          setCount(data.stats.currentStreak.count);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { currentStreak?: { type: "win" | "loss"; count: number } } | null });
+  const type = data.stats?.currentStreak?.type ?? "win";
+  const count = data.stats?.currentStreak?.count ?? 3;
 
   const isWin = type === "win";
 

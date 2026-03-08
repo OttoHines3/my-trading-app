@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function DayWinRateWidget() {
-  const [rate, setRate] = useState(72);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => { if (data.stats?.dayWinRate != null) setRate(data.stats.dayWinRate); })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { dayWinRate?: number } | null });
+  const rate = data.stats?.dayWinRate ?? 72;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const mockData = [
   { hour: 9, pnl: 320 }, { hour: 10, pnl: 480 }, { hour: 11, pnl: -120 },
@@ -10,14 +10,8 @@ const mockData = [
 ];
 
 export default function PnlByHourWidget() {
-  const [data, setData] = useState(mockData);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=by-hour")
-      .then((r) => r.json())
-      .then((res) => { if (res.byHour?.length) setData(res.byHour); })
-      .catch(() => {});
-  }, []);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=by-hour", { byHour: null as { hour: number; pnl: number }[] | null });
+  const data = res.byHour?.length ? res.byHour : mockData;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">

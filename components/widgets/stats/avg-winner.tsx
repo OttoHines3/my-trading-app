@@ -1,16 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function AvgWinnerWidget() {
-  const [avg, setAvg] = useState(320);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => { if (data.stats?.avgWinner != null) setAvg(data.stats.avgWinner); })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { avgWinner?: number } | null });
+  const avg = data.stats?.avgWinner ?? 320;
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

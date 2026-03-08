@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useTradeFilters } from "@/lib/stores/trade-filters";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const RADIUS = 24;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -17,23 +17,19 @@ function getDateLabel(dateFrom: string | null, dateTo: string | null): string {
   return `Until ${fmt(dateTo!)}`;
 }
 
+interface DashboardStats {
+  winRate?: number;
+  wins?: number;
+  losses?: number;
+}
+
 export default function WinRateWidget() {
-  const [winRate, setWinRate] = useState(67);
-  const [wins, setWins] = useState(43);
-  const [losses, setLosses] = useState(21);
+  const { data } = useWidgetFetch<DashboardStats>("/api/dashboard-stats", {});
+  const winRate = data.winRate ?? 67;
+  const wins = data.wins ?? 43;
+  const losses = data.losses ?? 21;
   const dateFrom = useTradeFilters((s) => s.dateFrom);
   const dateTo = useTradeFilters((s) => s.dateTo);
-
-  useEffect(() => {
-    fetch("/api/dashboard-stats")
-      .then((r) => r.json())
-      .then((data) => {
-        setWinRate(data.winRate);
-        setWins(data.wins);
-        setLosses(data.losses);
-      })
-      .catch(() => {});
-  }, []);
 
   const dashOffset = CIRCUMFERENCE - (winRate / 100) * CIRCUMFERENCE;
   const dateLabel = getDateLabel(dateFrom, dateTo);

@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function ExpectancyWidget() {
-  const [expectancy, setExpectancy] = useState(45.6);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => { if (data.stats?.expectancy != null) setExpectancy(data.stats.expectancy); })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { expectancy?: number } | null });
+  const expectancy = data.stats?.expectancy ?? 45.6;
 
   const isPositive = expectancy >= 0;
 

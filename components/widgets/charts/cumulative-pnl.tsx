@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const mockData = [
   { date: "Feb 1", pnl: 120 }, { date: "Feb 5", pnl: 340 }, { date: "Feb 10", pnl: 280 },
@@ -10,24 +10,17 @@ const mockData = [
 ];
 
 export default function CumulativePnlWidget() {
-  const [data, setData] = useState(mockData);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=daily-pnl", { dailyPnl: null as { date: string; pnl: number }[] | null });
 
-  useEffect(() => {
-    fetch("/api/widget-data?fields=daily-pnl")
-      .then((r) => r.json())
-      .then((res) => {
-        if (res.dailyPnl?.length) {
-          let cumulative = 0;
-          const mapped = res.dailyPnl.map((d: { date: string; pnl: number }) => {
-            cumulative += d.pnl;
-            const dateObj = new Date(d.date);
-            return { date: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }), pnl: cumulative };
-          });
-          setData(mapped);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  let data = mockData;
+  if (res.dailyPnl?.length) {
+    let cumulative = 0;
+    data = res.dailyPnl.map((d) => {
+      cumulative += d.pnl;
+      const dateObj = new Date(d.date);
+      return { date: dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" }), pnl: cumulative };
+    });
+  }
 
   const isPositive = data.length > 0 && data[data.length - 1].pnl >= 0;
   const color = isPositive ? "#22c55e" : "#ef4444";

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const defaultSparkData = [
   { v: 220 }, { v: 480 }, { v: 310 }, { v: 560 }, { v: 420 },
@@ -10,21 +10,17 @@ const defaultSparkData = [
   { v: 920 }, { v: 1240 },
 ];
 
-export default function TotalPnlWidget() {
-  const [totalPnl, setTotalPnl] = useState(8450);
-  const [totalTrades, setTotalTrades] = useState(64);
-  const [sparkData, setSparkData] = useState(defaultSparkData);
+interface DashboardStats {
+  totalPnl?: number;
+  totalTrades?: number;
+  pnlHistory?: { v: number }[] | null;
+}
 
-  useEffect(() => {
-    fetch("/api/dashboard-stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.totalPnl !== undefined) setTotalPnl(data.totalPnl);
-        if (data.totalTrades !== undefined) setTotalTrades(data.totalTrades);
-        if (data.pnlHistory) setSparkData(data.pnlHistory);
-      })
-      .catch(() => {});
-  }, []);
+export default function TotalPnlWidget() {
+  const { data } = useWidgetFetch<DashboardStats>("/api/dashboard-stats", {});
+  const totalPnl = data.totalPnl ?? 8450;
+  const totalTrades = data.totalTrades ?? 64;
+  const sparkData = data.pnlHistory ?? defaultSparkData;
 
   const isPositive = totalPnl >= 0;
 

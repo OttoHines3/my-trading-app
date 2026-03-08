@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 const mockData = [
   { day: "Mon", pnl: 420 }, { day: "Tue", pnl: -180 }, { day: "Wed", pnl: 560 },
@@ -9,14 +9,8 @@ const mockData = [
 ];
 
 export default function PnlByWeekdayWidget() {
-  const [data, setData] = useState(mockData);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=by-weekday")
-      .then((r) => r.json())
-      .then((res) => { if (res.byWeekday?.length) setData(res.byWeekday); })
-      .catch(() => {});
-  }, []);
+  const { data: res } = useWidgetFetch("/api/widget-data?fields=by-weekday", { byWeekday: null as { day: string; pnl: number }[] | null });
+  const data = res.byWeekday?.length ? res.byWeekday : mockData;
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-card p-4 card-glow transition-all duration-200 h-full">

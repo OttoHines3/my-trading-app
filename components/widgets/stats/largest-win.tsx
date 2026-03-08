@@ -1,23 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Trophy } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function LargestWinWidget() {
-  const [pnl, setPnl] = useState(890);
-  const [symbol, setSymbol] = useState("TSLA");
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.stats?.largestWin) {
-          setPnl(data.stats.largestWin.pnl);
-          setSymbol(data.stats.largestWin.symbol);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { largestWin?: { pnl: number; symbol: string } } | null });
+  const pnl = data.stats?.largestWin?.pnl ?? 890;
+  const symbol = data.stats?.largestWin?.symbol ?? "TSLA";
 
   return (
     <div className="relative rounded-xl border border-white/5 bg-card p-4 transition-all duration-200 card-glow h-full">

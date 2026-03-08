@@ -1,23 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Star } from "lucide-react";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function BestDayWidget() {
-  const [pnl, setPnl] = useState(1580);
-  const [date, setDate] = useState("2026-03-05");
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.stats?.bestDay) {
-          setPnl(data.stats.bestDay.pnl);
-          setDate(data.stats.bestDay.date);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { bestDay?: { pnl: number; date: string } } | null });
+  const pnl = data.stats?.bestDay?.pnl ?? 1580;
+  const date = data.stats?.bestDay?.date ?? "2026-03-05";
 
   const formatted = new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 

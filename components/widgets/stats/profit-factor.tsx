@@ -1,17 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useWidgetFetch } from "@/lib/hooks/use-widget-fetch";
 
 export default function ProfitFactorWidget() {
-  const [pf, setPf] = useState(2.4);
-
-  useEffect(() => {
-    fetch("/api/widget-data?fields=stats")
-      .then((r) => r.json())
-      .then((data) => { if (data.stats?.profitFactor != null) setPf(data.stats.profitFactor); })
-      .catch(() => {});
-  }, []);
+  const { data } = useWidgetFetch("/api/widget-data?fields=stats", { stats: null as { profitFactor?: number } | null });
+  const pf = data.stats?.profitFactor ?? 2.4;
 
   const isGood = pf >= 1;
   const barWidth = Math.min((pf / (pf + 1)) * 100, 95);
