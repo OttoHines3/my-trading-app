@@ -10,8 +10,8 @@ interface DashboardStats {
 }
 
 const R = 50;
-const CX = 60;
-const CY = 55;
+const CX = 70;
+const CY = 65;
 const STROKE = 8;
 const FULL_CIRC = 2 * Math.PI * R;
 const HALF_CIRC = Math.PI * R;
@@ -68,8 +68,8 @@ export default function WinRateWidget() {
       </div>
 
       {/* Right column: gauge + counts */}
-      <div className="flex flex-col items-center ml-auto shrink-0">
-        <svg viewBox="0 8 120 52" className="w-[100px]" aria-hidden="true">
+      <div className="relative ml-auto shrink-0 pt-2 w-[116px] pb-6">
+        <svg viewBox="0 -10 140 80" overflow="visible" className="w-full overflow-visible" aria-hidden="true">
           {/* Background track */}
           <circle
             cx={CX}
@@ -100,14 +100,12 @@ export default function WinRateWidget() {
           ))}
         </svg>
 
-        {/* Counts below gauge */}
-        <div className="flex items-center justify-between w-[100px] -mt-1 px-0.5">
-          <span className="text-[10px] font-bold text-[#22c55e]">{winners}</span>
-          {breakevens > 0 && (
-            <span className="text-[10px] font-bold text-[#3b82f6]">{breakevens}</span>
-          )}
-          <span className="text-[10px] font-bold text-[#ef4444]">{losers}</span>
-        </div>
+        {/* Counts positioned under their segments */}
+        <span className="absolute bottom-0 left-0 rounded-full bg-green-500/20 px-1.5 py-0.5 text-xs font-bold text-green-400">{winners}</span>
+        {breakevens > 0 && (
+          <span className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full bg-blue-500/20 px-1.5 py-0.5 text-xs font-bold text-blue-400">{breakevens}</span>
+        )}
+        <span className="absolute bottom-0 right-0 rounded-full bg-red-500/20 px-1.5 py-0.5 text-xs font-bold text-red-400">{losers}</span>
       </div>
     </div>
   );
